@@ -1,0 +1,27 @@
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Dependencies and builds
+node_modules/
+.next/
+out/
+dist/
+.vercel/
+
+# Supabase local files
+supabase/.temp/
+supabase/.branches/
+
+# Logs and OS files
+*.log
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+
+# Claude Code local settings
+.claude/settings.local.json
