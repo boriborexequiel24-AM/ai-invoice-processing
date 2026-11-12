@@ -5,6 +5,8 @@
 
 # Dependencies and builds
 node_modules/
+.venv/
+__pycache__/
 .next/
 out/
 dist/

@@ -1,0 +1,650 @@
+{
+  "generated_by": "scripts/generate_sample_invoices.py",
+  "invoices": [
+    {
+      "file": "01-clean-northwind.pdf",
+      "description": "Clean invoice. Matches PO-1001 exactly.",
+      "expected_status": "ready_for_approval",
+      "expected_flags": [],
+      "printed": {
+        "vendor_name": "Northwind Office Supply",
+        "invoice_number": "NW-20418",
+        "invoice_date": "2026-10-06",
+        "due_date": "2026-11-05",
+        "po_number": "PO-1001",
+        "currency": "USD",
+        "subtotal": "1146.50",
+        "tax": "94.00",
+        "total": "1240.50",
+        "line_items": [
+          {
+            "description": "Copy paper, letter, 10-ream case",
+            "quantity": "20",
+            "unit_price": "32.50",
+            "amount": "650.00"
+          },
+          {
+            "description": "Ink cartridge set, CMYK",
+            "quantity": "6",
+            "unit_price": "54.75",
+            "amount": "328.50"
+          },
+          {
+            "description": "Desk organizer, mesh",
+            "quantity": "12",
+            "unit_price": "14.00",
+            "amount": "168.00"
+          }
+        ]
+      }
+    },
+    {
+      "file": "02-clean-brightline.pdf",
+      "description": "Clean invoice, no tax (freight). Matches PO-1002.",
+      "expected_status": "ready_for_approval",
+      "expected_flags": [],
+      "printed": {
+        "vendor_name": "Brightline Logistics",
+        "invoice_number": "BL-7781",
+        "invoice_date": "2026-10-09",
+        "due_date": "2026-10-24",
+        "po_number": "PO-1002",
+        "currency": "USD",
+        "subtotal": "3875.00",
+        "tax": "0.00",
+        "total": "3875.00",
+        "line_items": [
+          {
+            "description": "LTL freight, Chicago IL to Dallas TX",
+            "quantity": "1",
+            "unit_price": "2450.00",
+            "amount": "2450.00"
+          },
+          {
+            "description": "Liftgate service",
+            "quantity": "1",
+            "unit_price": "175.00",
+            "amount": "175.00"
+          },
+          {
+            "description": "Pallet storage (pallet-days)",
+            "quantity": "25",
+            "unit_price": "50.00",
+            "amount": "1250.00"
+          }
+        ]
+      }
+    },
+    {
+      "file": "03-clean-cedar.pdf",
+      "description": "Clean invoice for a service. Matches PO-1003.",
+      "expected_status": "ready_for_approval",
+      "expected_flags": [],
+      "printed": {
+        "vendor_name": "Cedar & Pine Cleaning",
+        "invoice_number": "CP-0932",
+        "invoice_date": "2026-10-14",
+        "due_date": "2026-11-13",
+        "po_number": "PO-1003",
+        "currency": "USD",
+        "subtotal": "950.00",
+        "tax": "0.00",
+        "total": "950.00",
+        "line_items": [
+          {
+            "description": "Office deep clean, October",
+            "quantity": "1",
+            "unit_price": "720.00",
+            "amount": "720.00"
+          },
+          {
+            "description": "Interior window cleaning",
+            "quantity": "1",
+            "unit_price": "160.00",
+            "amount": "160.00"
+          },
+          {
+            "description": "Cleaning supplies",
+            "quantity": "1",
+            "unit_price": "70.00",
+            "amount": "70.00"
+          }
+        ]
+      }
+    },
+    {
+      "file": "04-clean-atlas.pdf",
+      "description": "Clean invoice with tax. Matches PO-1004.",
+      "expected_status": "ready_for_approval",
+      "expected_flags": [],
+      "printed": {
+        "vendor_name": "Atlas Cloud Hosting",
+        "invoice_number": "AC-2026-1104",
+        "invoice_date": "2026-10-01",
+        "due_date": "2026-10-31",
+        "po_number": "PO-1004",
+        "currency": "USD",
+        "subtotal": "567.40",
+        "tax": "45.40",
+        "total": "612.80",
+        "line_items": [
+          {
+            "description": "Cloud VM, 4 vCPU / 16 GB, monthly",
+            "quantity": "2",
+            "unit_price": "189.00",
+            "amount": "378.00"
+          },
+          {
+            "description": "Block storage, 500 GB",
+            "quantity": "1",
+            "unit_price": "85.00",
+            "amount": "85.00"
+          },
+          {
+            "description": "Managed backups",
+            "quantity": "1",
+            "unit_price": "104.40",
+            "amount": "104.40"
+          }
+        ]
+      }
+    },
+    {
+      "file": "05-duplicate-of-01.pdf",
+      "description": "Same invoice as 01 sent again as a reminder. Different file, same vendor and invoice number.",
+      "expected_status": "flagged",
+      "expected_flags": [
+        "duplicate"
+      ],
+      "printed": {
+        "vendor_name": "Northwind Office Supply",
+        "invoice_number": "NW-20418",
+        "invoice_date": "2026-10-06",
+        "due_date": "2026-11-05",
+        "po_number": "PO-1001",
+        "currency": "USD",
+        "subtotal": "1146.50",
+        "tax": "94.00",
+        "total": "1240.50",
+        "line_items": [
+          {
+            "description": "Copy paper, letter, 10-ream case",
+            "quantity": "20",
+            "unit_price": "32.50",
+            "amount": "650.00"
+          },
+          {
+            "description": "Ink cartridge set, CMYK",
+            "quantity": "6",
+            "unit_price": "54.75",
+            "amount": "328.50"
+          },
+          {
+            "description": "Desk organizer, mesh",
+            "quantity": "12",
+            "unit_price": "14.00",
+            "amount": "168.00"
+          }
+        ]
+      }
+    },
+    {
+      "file": "06-math-error-harbor.pdf",
+      "description": "Line items add up to 2,165.00 but the printed subtotal is 2,045.00.",
+      "expected_status": "flagged",
+      "expected_flags": [
+        "line_items_mismatch"
+      ],
+      "printed": {
+        "vendor_name": "Harbor Print Co.",
+        "invoice_number": "HP-5512",
+        "invoice_date": "2026-10-20",
+        "due_date": "2026-11-19",
+        "po_number": "PO-1005",
+        "currency": "USD",
+        "subtotal": "2045.00",
+        "tax": "165.00",
+        "total": "2210.00",
+        "line_items": [
+          {
+            "description": "Brochure, tri-fold, full color",
+            "quantity": "2000",
+            "unit_price": "0.75",
+            "amount": "1500.00"
+          },
+          {
+            "description": "Business cards, box of 500",
+            "quantity": "10",
+            "unit_price": "54.50",
+            "amount": "545.00"
+          },
+          {
+            "description": "Design proof and setup",
+            "quantity": "1",
+            "unit_price": "120.00",
+            "amount": "120.00"
+          }
+        ]
+      }
+    },
+    {
+      "file": "07-wrong-total-cedar.pdf",
+      "description": "Subtotal 450.00 plus tax 30.00 should be 480.00, but the printed total is 520.00.",
+      "expected_status": "flagged",
+      "expected_flags": [
+        "total_mismatch",
+        "po_amount_exceeded"
+      ],
+      "printed": {
+        "vendor_name": "Cedar & Pine Cleaning",
+        "invoice_number": "CP-0957",
+        "invoice_date": "2026-10-27",
+        "due_date": "2026-11-26",
+        "po_number": "PO-1006",
+        "currency": "USD",
+        "subtotal": "450.00",
+        "tax": "30.00",
+        "total": "520.00",
+        "line_items": [
+          {
+            "description": "Carpet cleaning, main office",
+            "quantity": "1",
+            "unit_price": "380.00",
+            "amount": "380.00"
+          },
+          {
+            "description": "Upholstery cleaning, lobby chairs",
+            "quantity": "2",
+            "unit_price": "35.00",
+            "amount": "70.00"
+          }
+        ]
+      }
+    },
+    {
+      "file": "08-missing-po-northwind.pdf",
+      "description": "Known vendor, correct math, but no PO number on the invoice.",
+      "expected_status": "flagged",
+      "expected_flags": [
+        "missing_po"
+      ],
+      "printed": {
+        "vendor_name": "Northwind Office Supply",
+        "invoice_number": "NW-20455",
+        "invoice_date": "2026-11-02",
+        "due_date": "2026-12-02",
+        "po_number": null,
+        "currency": "USD",
+        "subtotal": "294.40",
+        "tax": "24.00",
+        "total": "318.40",
+        "line_items": [
+          {
+            "description": "Whiteboard markers, 4-pack",
+            "quantity": "30",
+            "unit_price": "2.80",
+            "amount": "84.00"
+          },
+          {
+            "description": "Sticky notes, 12-pack",
+            "quantity": "40",
+            "unit_price": "3.85",
+            "amount": "154.00"
+          },
+          {
+            "description": "Stapler, heavy duty",
+            "quantity": "4",
+            "unit_price": "14.10",
+            "amount": "56.40"
+          }
+        ]
+      }
+    },
+    {
+      "file": "09-over-po-brightline.pdf",
+      "description": "Total 1,560.00 is 30% over PO-1007 (1,200.00).",
+      "expected_status": "flagged",
+      "expected_flags": [
+        "po_amount_exceeded"
+      ],
+      "printed": {
+        "vendor_name": "Brightline Logistics",
+        "invoice_number": "BL-7804",
+        "invoice_date": "2026-11-03",
+        "due_date": "2026-11-18",
+        "po_number": "PO-1007",
+        "currency": "USD",
+        "subtotal": "1560.00",
+        "tax": "0.00",
+        "total": "1560.00",
+        "line_items": [
+          {
+            "description": "FTL freight, Joliet IL to Memphis TN",
+            "quantity": "1",
+            "unit_price": "1150.00",
+            "amount": "1150.00"
+          },
+          {
+            "description": "Fuel surcharge",
+            "quantity": "1",
+            "unit_price": "230.00",
+            "amount": "230.00"
+          },
+          {
+            "description": "Driver detention (hours)",
+            "quantity": "2",
+            "unit_price": "90.00",
+            "amount": "180.00"
+          }
+        ]
+      }
+    },
+    {
+      "file": "10-unknown-vendor.pdf",
+      "description": "Vendor is not in the vendor list and there is no PO.",
+      "expected_status": "flagged",
+      "expected_flags": [
+        "unknown_vendor",
+        "missing_po"
+      ],
+      "printed": {
+        "vendor_name": "Quantum Desk Rentals",
+        "invoice_number": "QDR-118",
+        "invoice_date": "2026-11-04",
+        "due_date": "2026-12-04",
+        "po_number": null,
+        "currency": "USD",
+        "subtotal": "330.00",
+        "tax": "26.40",
+        "total": "356.40",
+        "line_items": [
+          {
+            "description": "Standing desk rental, monthly",
+            "quantity": "6",
+            "unit_price": "45.00",
+            "amount": "270.00"
+          },
+          {
+            "description": "Delivery and setup",
+            "quantity": "1",
+            "unit_price": "60.00",
+            "amount": "60.00"
+          }
+        ]
+      }
+    },
+    {
+      "file": "11-blurry-scan-atlas.pdf",
+      "description": "Correct invoice, but saved as a blurry, slightly tilted scan with no text layer.",
+      "expected_status": "ready_for_approval or needs_review",
+      "expected_flags": [],
+      "printed": {
+        "vendor_name": "Atlas Cloud Hosting",
+        "invoice_number": "AC-2026-1172",
+        "invoice_date": "2026-11-01",
+        "due_date": "2026-12-01",
+        "po_number": "PO-1008",
+        "currency": "USD",
+        "subtotal": "1008.00",
+        "tax": "81.00",
+        "total": "1089.00",
+        "line_items": [
+          {
+            "description": "Dedicated server, 32 cores, monthly",
+            "quantity": "1",
+            "unit_price": "899.00",
+            "amount": "899.00"
+          },
+          {
+            "description": "Load balancer, monthly",
+            "quantity": "1",
+            "unit_price": "109.00",
+            "amount": "109.00"
+          }
+        ]
+      }
+    },
+    {
+      "file": "12-multi-page-harbor.pdf",
+      "description": "Correct invoice with 32 line items across two pages. Matches PO-1009.",
+      "expected_status": "ready_for_approval",
+      "expected_flags": [],
+      "printed": {
+        "vendor_name": "Harbor Print Co.",
+        "invoice_number": "HP-5590",
+        "invoice_date": "2026-11-05",
+        "due_date": "2026-12-05",
+        "po_number": "PO-1009",
+        "currency": "USD",
+        "subtotal": "10536.00",
+        "tax": "842.88",
+        "total": "11378.88",
+        "line_items": [
+          {
+            "description": "Flyer A5, 1,000 pcs (Spring Expo)",
+            "quantity": "3",
+            "unit_price": "89.00",
+            "amount": "267.00"
+          },
+          {
+            "description": "Poster 24x36 in (Spring Expo)",
+            "quantity": "40",
+            "unit_price": "6.50",
+            "amount": "260.00"
+          },
+          {
+            "description": "Roll-up banner (Spring Expo)",
+            "quantity": "4",
+            "unit_price": "145.00",
+            "amount": "580.00"
+          },
+          {
+            "description": "Table cover, printed (Spring Expo)",
+            "quantity": "2",
+            "unit_price": "118.00",
+            "amount": "236.00"
+          },
+          {
+            "description": "Lanyard with badge (Spring Expo)",
+            "quantity": "250",
+            "unit_price": "2.40",
+            "amount": "600.00"
+          },
+          {
+            "description": "Tote bag, 1 color (Spring Expo)",
+            "quantity": "120",
+            "unit_price": "4.15",
+            "amount": "498.00"
+          },
+          {
+            "description": "Brochure tri-fold, 500 pcs (Spring Expo)",
+            "quantity": "2",
+            "unit_price": "132.00",
+            "amount": "264.00"
+          },
+          {
+            "description": "Sticker sheet (Spring Expo)",
+            "quantity": "400",
+            "unit_price": "0.85",
+            "amount": "340.00"
+          },
+          {
+            "description": "Postcard 4x6, 500 pcs (Spring Expo)",
+            "quantity": "3",
+            "unit_price": "58.00",
+            "amount": "174.00"
+          },
+          {
+            "description": "Booklet 16 pages (Spring Expo)",
+            "quantity": "150",
+            "unit_price": "3.20",
+            "amount": "480.00"
+          },
+          {
+            "description": "Foam board sign (Spring Expo)",
+            "quantity": "6",
+            "unit_price": "34.00",
+            "amount": "204.00"
+          },
+          {
+            "description": "Event program (Spring Expo)",
+            "quantity": "300",
+            "unit_price": "1.95",
+            "amount": "585.00"
+          },
+          {
+            "description": "Name tent card (Spring Expo)",
+            "quantity": "200",
+            "unit_price": "0.60",
+            "amount": "120.00"
+          },
+          {
+            "description": "Wristband, printed (Spring Expo)",
+            "quantity": "500",
+            "unit_price": "0.45",
+            "amount": "225.00"
+          },
+          {
+            "description": "Menu card, laminated (Spring Expo)",
+            "quantity": "60",
+            "unit_price": "2.75",
+            "amount": "165.00"
+          },
+          {
+            "description": "Folder with pocket (Spring Expo)",
+            "quantity": "150",
+            "unit_price": "1.80",
+            "amount": "270.00"
+          },
+          {
+            "description": "Flyer A5, 1,000 pcs (Partner Summit)",
+            "quantity": "3",
+            "unit_price": "89.00",
+            "amount": "267.00"
+          },
+          {
+            "description": "Poster 24x36 in (Partner Summit)",
+            "quantity": "40",
+            "unit_price": "6.50",
+            "amount": "260.00"
+          },
+          {
+            "description": "Roll-up banner (Partner Summit)",
+            "quantity": "4",
+            "unit_price": "145.00",
+            "amount": "580.00"
+          },
+          {
+            "description": "Table cover, printed (Partner Summit)",
+            "quantity": "2",
+            "unit_price": "118.00",
+            "amount": "236.00"
+          },
+          {
+            "description": "Lanyard with badge (Partner Summit)",
+            "quantity": "250",
+            "unit_price": "2.40",
+            "amount": "600.00"
+          },
+          {
+            "description": "Tote bag, 1 color (Partner Summit)",
+            "quantity": "120",
+            "unit_price": "4.15",
+            "amount": "498.00"
+          },
+          {
+            "description": "Brochure tri-fold, 500 pcs (Partner Summit)",
+            "quantity": "2",
+            "unit_price": "132.00",
+            "amount": "264.00"
+          },
+          {
+            "description": "Sticker sheet (Partner Summit)",
+            "quantity": "400",
+            "unit_price": "0.85",
+            "amount": "340.00"
+          },
+          {
+            "description": "Postcard 4x6, 500 pcs (Partner Summit)",
+            "quantity": "3",
+            "unit_price": "58.00",
+            "amount": "174.00"
+          },
+          {
+            "description": "Booklet 16 pages (Partner Summit)",
+            "quantity": "150",
+            "unit_price": "3.20",
+            "amount": "480.00"
+          },
+          {
+            "description": "Foam board sign (Partner Summit)",
+            "quantity": "6",
+            "unit_price": "34.00",
+            "amount": "204.00"
+          },
+          {
+            "description": "Event program (Partner Summit)",
+            "quantity": "300",
+            "unit_price": "1.95",
+            "amount": "585.00"
+          },
+          {
+            "description": "Name tent card (Partner Summit)",
+            "quantity": "200",
+            "unit_price": "0.60",
+            "amount": "120.00"
+          },
+          {
+            "description": "Wristband, printed (Partner Summit)",
+            "quantity": "500",
+            "unit_price": "0.45",
+            "amount": "225.00"
+          },
+          {
+            "description": "Menu card, laminated (Partner Summit)",
+            "quantity": "60",
+            "unit_price": "2.75",
+            "amount": "165.00"
+          },
+          {
+            "description": "Folder with pocket (Partner Summit)",
+            "quantity": "150",
+            "unit_price": "1.80",
+            "amount": "270.00"
+          }
+        ]
+      }
+    },
+    {
+      "file": "13-euro-lindqvist.pdf",
+      "description": "Correct invoice in EUR with European number and date formats. Matches PO-1010.",
+      "expected_status": "ready_for_approval",
+      "expected_flags": [],
+      "printed": {
+        "vendor_name": "Lindqvist Design Studio",
+        "invoice_number": "LDS-2026-044",
+        "invoice_date": "2026-10-30",
+        "due_date": "2026-11-29",
+        "po_number": "PO-1010",
+        "currency": "EUR",
+        "subtotal": "2400.00",
+        "tax": "504.00",
+        "total": "2904.00",
+        "line_items": [
+          {
+            "description": "Brand identity package",
+            "quantity": "1",
+            "unit_price": "1800.00",
+            "amount": "1800.00"
+          },
+          {
+            "description": "Logo revision rounds",
+            "quantity": "4",
+            "unit_price": "150.00",
+            "amount": "600.00"
+          }
+        ]
+      }
+    }
+  ]
+}
