@@ -1,11 +1,17 @@
 # AI Invoice Processing System
 
-Invoices come in by email or upload. AI reads them, the system checks them, a person approves them in Slack, and they get posted to Xero. A live dashboard shows every invoice and where it is.
+An invoice PDF goes in, a bill in the accounting system comes out. AI reads the invoice, the system checks it, a person approves it in Slack, and it gets posted to Xero. A live dashboard shows every invoice and where it is.
 
-**Live demo:** https://ai-invoice-processing-six.vercel.app (try a sample invoice or upload your own PDF)
+**[Try the live demo](https://ai-invoice-processing-six.vercel.app).** Pick a sample invoice or upload your own PDF and watch it go through, in about 20 seconds.
+
+![The dashboard: how it works, the sample invoices you can try, and live metrics](docs/images/dashboard-home.png)
+
+## How it fits together
+
+![Architecture: two n8n workflows, with a Slack approval in the middle, on top of Supabase](docs/images/architecture.svg)
 
 ## What it does
-1. **Receives invoices** from a Gmail inbox or a dashboard upload, and skips any file it has already seen.
+1. **Receives invoices** uploaded on the dashboard, and skips any file it has already seen. The intake is a webhook, so an email or folder watcher can feed it the same way.
 2. **Reads each invoice with AI** (OpenAI, with the provider swappable), pulling out the vendor, invoice number, dates, line items and totals, with a confidence score for each field.
 3. **Checks the numbers:** line items add up, no duplicate invoices, the purchase order exists and matches, the vendor is known.
 4. **Sends it for approval** in Slack with Approve and Reject buttons, and explains any problems in plain words.
@@ -15,11 +21,17 @@ Invoices come in by email or upload. AI reads them, the system checks them, a pe
 ## Live dashboard
 A web page where anyone can try the system and see every invoice.
 
+![An invoice page: the original PDF beside what the AI read, with the problem found and a confidence score on every field](docs/images/dashboard-invoice.png)
+
 - **Try it:** six sample invoices (clean, math error, over budget, unknown vendor, blurry scan, euro) or your own PDF. A progress panel shows each step while it runs, about 20 seconds.
 - **Invoice list** with status filters and a plain-English problem summary, plus live metrics: invoices processed, waiting, flagged, posted, and the average AI read time and cost.
 - **Invoice page:** the original PDF next to what the AI read (with a confidence score per field), the check results, line items, who approved it, the Xero link, and a full history timeline.
 - **Built for a public demo:** 5 tries per visitor per day, PDFs only, up to 5 MB, and a daily cap. Uploads are deleted after 24 hours by an hourly cleanup job and never reach Xero. Visitor IPs are only stored as salted hashes.
 - **Private by default:** the browser never sees an API key. The page reads with a limited public key that can't see file paths, raw AI output or IP hashes, and PDFs open through short-lived signed links.
+
+Every invoice shows its status and, where something is wrong, the reason in plain English:
+
+![The invoice list, with status badges and plain-English problem messages](docs/images/dashboard-list.png)
 
 ## Approval in Slack
 Every processed invoice lands in a Slack channel with its total, due date, PO, status and any problems in plain English, plus **Approve** and **Reject** buttons. Flagged invoices need an extra "are you sure?" click.
@@ -59,7 +71,9 @@ Then open http://localhost:3000.
 | `n8n/workflows/` | Exported n8n workflows |
 | `supabase/` | Database schema and demo data |
 | `sample-invoices/` | Fake test invoices, including edge cases |
-| `docs/` | Plan and setup notes |
+| `docs/` | Plan, setup, validation rules and the AI accuracy test |
+| `scripts/` | Python helpers: sample invoices, workflow builder, tests |
+| `extraction/` | The AI prompt and output format, shared by the tests and n8n |
 
 ## Running it yourself
 See [docs/SETUP.md](docs/SETUP.md).

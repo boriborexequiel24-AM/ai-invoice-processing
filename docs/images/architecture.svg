@@ -1,0 +1,106 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 690" width="1000" height="690" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#94A3B8"/>
+    </marker>
+  </defs>
+
+  <rect width="1000" height="690" fill="#FFFFFF"/>
+
+  <!-- Workflow 1 -->
+  <rect x="40" y="30" width="920" height="152" rx="12" fill="#F8FAFC" stroke="#CBD5E1"/>
+  <text x="60" y="56" font-size="14" font-weight="600" fill="#1F4E79">Workflow 1 in n8n: intake, reading and checking</text>
+
+  <g font-size="12">
+    <rect x="60" y="70" width="133" height="94" rx="8" fill="#FFFFFF" stroke="#CBD5E1"/>
+    <text x="126" y="104" text-anchor="middle" font-weight="600" fill="#0F172A">PDF arrives</text>
+    <text x="126" y="124" text-anchor="middle" font-size="11" fill="#475569">dashboard upload</text>
+
+    <rect x="209" y="70" width="133" height="94" rx="8" fill="#FFFFFF" stroke="#CBD5E1"/>
+    <text x="275" y="104" text-anchor="middle" font-weight="600" fill="#0F172A">Fingerprint</text>
+    <text x="275" y="124" text-anchor="middle" font-size="11" fill="#475569">skips repeat files</text>
+
+    <rect x="358" y="70" width="133" height="94" rx="8" fill="#FFFFFF" stroke="#CBD5E1"/>
+    <text x="424" y="104" text-anchor="middle" font-weight="600" fill="#0F172A">Store the file</text>
+    <text x="424" y="124" text-anchor="middle" font-size="11" fill="#475569">private bucket</text>
+
+    <rect x="507" y="70" width="133" height="94" rx="8" fill="#EEF4FA" stroke="#2C6AA0"/>
+    <text x="573" y="104" text-anchor="middle" font-weight="600" fill="#1F4E79">Read with AI</text>
+    <text x="573" y="124" text-anchor="middle" font-size="11" fill="#2C6AA0">OpenAI, fixed format</text>
+
+    <rect x="656" y="70" width="133" height="94" rx="8" fill="#EEF4FA" stroke="#2C6AA0"/>
+    <text x="722" y="104" text-anchor="middle" font-weight="600" fill="#1F4E79">Run 12 checks</text>
+    <text x="722" y="124" text-anchor="middle" font-size="11" fill="#2C6AA0">math, PO, vendor</text>
+
+    <rect x="805" y="70" width="133" height="94" rx="8" fill="#FFFFFF" stroke="#CBD5E1"/>
+    <text x="871" y="104" text-anchor="middle" font-weight="600" fill="#0F172A">Post to Slack</text>
+    <text x="871" y="124" text-anchor="middle" font-size="11" fill="#475569">with buttons</text>
+  </g>
+
+  <g stroke="#94A3B8" stroke-width="1.5" marker-end="url(#arrow)">
+    <line x1="193" y1="117" x2="205" y2="117"/>
+    <line x1="342" y1="117" x2="354" y2="117"/>
+    <line x1="491" y1="117" x2="503" y2="117"/>
+    <line x1="640" y1="117" x2="652" y2="117"/>
+    <line x1="789" y1="117" x2="801" y2="117"/>
+    <line x1="500" y1="182" x2="500" y2="214"/>
+  </g>
+
+  <!-- Slack decision -->
+  <rect x="330" y="218" width="340" height="80" rx="12" fill="#FFFFFF" stroke="#1F4E79" stroke-width="1.5"/>
+  <text x="500" y="248" text-anchor="middle" font-size="14" font-weight="600" fill="#1F4E79">A person decides, in Slack</text>
+  <text x="500" y="272" text-anchor="middle" font-size="12" fill="#475569">Approve or Reject, with the problems spelled out</text>
+
+  <line x1="500" y1="298" x2="500" y2="330" stroke="#94A3B8" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Workflow 2 -->
+  <rect x="40" y="334" width="920" height="152" rx="12" fill="#F8FAFC" stroke="#CBD5E1"/>
+  <text x="60" y="360" font-size="14" font-weight="600" fill="#1F4E79">Workflow 2 in n8n: the decision and the bill</text>
+
+  <g font-size="12">
+    <rect x="60" y="374" width="205" height="94" rx="8" fill="#FFFFFF" stroke="#CBD5E1"/>
+    <text x="162" y="408" text-anchor="middle" font-weight="600" fill="#0F172A">Check it is really Slack</text>
+    <text x="162" y="428" text-anchor="middle" font-size="11" fill="#475569">signed, and recent</text>
+
+    <rect x="285" y="374" width="205" height="94" rx="8" fill="#FFFFFF" stroke="#CBD5E1"/>
+    <text x="387" y="408" text-anchor="middle" font-weight="600" fill="#0F172A">Record the decision</text>
+    <text x="387" y="428" text-anchor="middle" font-size="11" fill="#475569">who, and when</text>
+
+    <rect x="510" y="374" width="205" height="94" rx="8" fill="#EEF4FA" stroke="#2C6AA0"/>
+    <text x="612" y="408" text-anchor="middle" font-weight="600" fill="#1F4E79">Create the bill in Xero</text>
+    <text x="612" y="428" text-anchor="middle" font-size="11" fill="#2C6AA0">with the PDF attached</text>
+
+    <rect x="735" y="374" width="205" height="94" rx="8" fill="#FFFFFF" stroke="#CBD5E1"/>
+    <text x="837" y="408" text-anchor="middle" font-weight="600" fill="#0F172A">Update the message</text>
+    <text x="837" y="428" text-anchor="middle" font-size="11" fill="#475569">buttons become the result</text>
+  </g>
+
+  <g stroke="#94A3B8" stroke-width="1.5" marker-end="url(#arrow)">
+    <line x1="265" y1="421" x2="281" y2="421"/>
+    <line x1="490" y1="421" x2="506" y2="421"/>
+    <line x1="715" y1="421" x2="731" y2="421"/>
+  </g>
+
+  <text x="500" y="506" text-anchor="middle" font-size="12" fill="#475569">Rejected invoices stop here. So do public demo uploads, which never reach Xero.</text>
+
+  <!-- Running underneath -->
+  <line x1="40" y1="534" x2="960" y2="534" stroke="#E2E8F0"/>
+  <text x="40" y="562" font-size="13" font-weight="600" fill="#0F172A">Underneath all of it</text>
+
+  <g font-size="12">
+    <rect x="40" y="578" width="300" height="86" rx="8" fill="#FFFFFF" stroke="#CBD5E1"/>
+    <text x="60" y="604" font-weight="600" fill="#0F172A">Supabase</text>
+    <text x="60" y="624" font-size="11" fill="#475569">Every invoice, line item and step,</text>
+    <text x="60" y="640" font-size="11" fill="#475569">plus the PDFs. The checks live here too.</text>
+
+    <rect x="356" y="578" width="300" height="86" rx="8" fill="#FFFFFF" stroke="#CBD5E1"/>
+    <text x="376" y="604" font-weight="600" fill="#0F172A">Dashboard on Vercel</text>
+    <text x="376" y="624" font-size="11" fill="#475569">Reads the same data to show status,</text>
+    <text x="376" y="640" font-size="11" fill="#475569">the PDF, the checks and the history.</text>
+
+    <rect x="672" y="578" width="288" height="86" rx="8" fill="#FFFFFF" stroke="#CBD5E1"/>
+    <text x="692" y="604" font-weight="600" fill="#0F172A">Hourly cleanup</text>
+    <text x="692" y="624" font-size="11" fill="#475569">Deletes demo uploads after 24 hours,</text>
+    <text x="692" y="640" font-size="11" fill="#475569">including the file and Slack message.</text>
+  </g>
+</svg>

@@ -67,6 +67,8 @@ Every value below goes in `.env` (copy it from `.env.example`). Never commit `.e
 - [ ] Activate **Invoice Processing | 2. Approval + Xero**.
 - [ ] Test: `scripts/test_n8n_intake.py --reset`, then `scripts/test_approval.py`.
 
-## 6. Gmail intake
+## 7. Gmail intake (not built yet)
+Email intake is planned, not implemented. There is no Gmail trigger in any workflow. To add it, put a Gmail Trigger in front of the intake webhook and send the attachment with `source=email`.
+
 - [ ] Use a separate Gmail account for the demo inbox, not your personal one.
 - [ ] Create a label named `invoices` and a filter that applies it to messages with PDF attachments.

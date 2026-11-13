@@ -20,7 +20,7 @@ Dashboard upload┘        │                │                 │           
                                                  Next.js dashboard (Vercel)
 ```
 
-1. **Intake.** An invoice arrives at a demo Gmail inbox, or someone uploads a PDF from the dashboard. The file is saved to Supabase Storage. A hash of the file stops the same invoice from being processed twice.
+1. **Intake.** Someone uploads a PDF from the dashboard (email intake is planned, not built). The file is saved to Supabase Storage. A hash of the file stops the same invoice from being processed twice.
 2. **Extraction.** n8n sends the PDF to the AI model (OpenAI for now) and asks for strict JSON: vendor, invoice number, dates, currency, line items, subtotal, tax, total, PO number. Each field gets a confidence score.
 3. **Validation.** A code step runs these checks:
    - Line items add up to the subtotal, and subtotal plus tax equals the total
@@ -50,7 +50,7 @@ Dashboard upload┘        │                │                 │           
 | Dashboard | Next.js + Tailwind, hosted on Vercel |
 | Approvals, alerts | Slack app (buttons via interactivity webhook) |
 | Accounting | Xero API (demo company) |
-| Intake | Gmail, dashboard upload |
+| Intake | Dashboard upload (Gmail planned) |
 
 ## Data model (Supabase)
 - `vendors`: name, email, default currency

@@ -1,5 +1,5 @@
 const STEPS = [
-  { title: "Upload", text: "A PDF arrives by email or upload." },
+  { title: "An invoice arrives", text: "Someone uploads a PDF, or another system sends one in." },
   { title: "AI reads it", text: "Vendor, dates, line items and totals, with a confidence score for each." },
   { title: "12 checks", text: "Math, duplicates, PO match, known vendor, currency." },
   { title: "Slack approval", text: "A person approves or rejects with one click." },
