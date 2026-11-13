@@ -25,19 +25,40 @@ Every value below goes in `.env` (copy it from `.env.example`). Never commit `.e
   - **Extract with AI** node: OpenAI.
 - [ ] Run the deploy command again. It copies the Supabase credential to the other Supabase nodes.
 - [ ] Activate the workflow, then test: `.venv/Scripts/python.exe scripts/test_n8n_intake.py --reset`
-- [ ] Slack, Xero and Gmail credentials come in phase 5.
-
 ## 4. Slack
-- [ ] Create a Slack app at api.slack.com/apps.
-- [ ] Bot scopes: `chat:write`, `chat:write.public`.
-- [ ] Turn on **Interactivity** and set the Request URL to the n8n approval webhook (we'll make it in phase 5).
-- [ ] Install to your workspace, copy the bot token and signing secret.
-- [ ] Create `#invoice-approvals` and `#invoice-alerts` channels and copy their IDs.
+- [ ] Use a separate free workspace for demos, so client screen-shares stay clean.
+- [ ] At api.slack.com/apps, click **Create New App**, then **Paste a manifest**, and use:
+  ```json
+  {
+    "display_information": { "name": "Invoice Approvals" },
+    "features": { "bot_user": { "display_name": "Invoice Approvals", "always_online": true } },
+    "oauth_config": { "scopes": { "bot": ["chat:write", "chat:write.public"] } },
+    "settings": { "org_deploy_enabled": false, "socket_mode_enabled": false, "token_rotation_enabled": false }
+  }
+  ```
+  Skip the Slack CLI steps it shows afterwards; they're for coded apps.
+- [ ] **Install to Workspace**, then copy the bot token (`xoxb-...`) into `SLACK_BOT_TOKEN` and the **Signing Secret** (Basic Information) into `SLACK_SIGNING_SECRET`.
+- [ ] Create `#invoice-approvals` and `#invoice-alerts`, and copy their channel IDs into `.env`.
+- [ ] In n8n, create a **Slack API** credential with the bot token and pick it on the **Post to Slack** node.
+- [ ] After deploying, turn on **Interactivity & Shortcuts** in the Slack app with Request URL `{N8N_BASE_URL}/webhook/invoice-slack-actions`.
 
 ## 5. Xero
-- [ ] Turn on the **Demo Company** in your Xero account.
-- [ ] Create an app at developer.xero.com (Web app), with the redirect URL from your n8n Xero credential.
-- [ ] Copy the client ID and secret, connect the Demo Company in n8n, and note its tenant ID.
+- [ ] Sign up or log in at xero.com, then open **Try the Demo Company** from my.xero.com.
+- [ ] At developer.xero.com, create a **Web app** with redirect URI `{N8N_BASE_URL}/rest/oauth2-credential/callback`. It should show "0 of 5 connections" (the free Starter tier).
+- [ ] Copy the Client ID and a generated secret into `.env`.
+- [ ] In n8n, create a generic **OAuth2 API** credential, not the built-in Xero one. Apps created after March 2026 must use Xero's newer, narrower permissions, and the built-in credential asks for an old one, which fails with `invalid_scope`.
+  - Authorization URL: `https://login.xero.com/identity/connect/authorize`
+  - Access Token URL: `https://identity.xero.com/connect/token`
+  - Scope: `offline_access accounting.settings accounting.contacts accounting.invoices accounting.attachments`
+  - Authentication: Header
+- [ ] Connect it to the **Demo Company** and pick it on the **Xero organisations** node in workflow 2.
+- [ ] The Demo Company resets about every 28 days. When that happens, reconnect the credential.
+- [ ] Optional: the Demo Company only has USD. To post the EUR sample invoice, add EUR under Settings > Currencies in Xero.
+
+## After Slack and Xero
+- [ ] Run the migrations again if any are new, then deploy: `.venv/Scripts/python.exe scripts/build_n8n_workflow.py --deploy`
+- [ ] Activate **Invoice Processing | 2. Approval + Xero**.
+- [ ] Test: `scripts/test_n8n_intake.py --reset`, then `scripts/test_approval.py`.
 
 ## 6. Gmail intake
 - [ ] Use a separate Gmail account for the demo inbox, not your personal one.

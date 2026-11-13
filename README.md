@@ -12,11 +12,21 @@ Invoices come in by email or upload. AI reads them, the system checks them, a pe
 5. **Posts approved invoices to Xero** as bills, with the PDF attached.
 6. **Logs every step**, so each invoice has a full history.
 
+## Approval in Slack
+Every processed invoice lands in a Slack channel with its total, due date, PO, status and any problems in plain English, plus **Approve** and **Reject** buttons. Flagged invoices need an extra "are you sure?" click.
+
+- **Approved** invoices become bills in Xero with the PDF attached, and the Slack message updates with a link to the bill.
+- **Rejected** invoices stop there. Every decision records who made it and when.
+- **Safe by design:** button clicks are checked against Slack's signature, so they can't be faked, and a second click on a decided invoice changes nothing.
+- **Failures are visible:** if Xero refuses a bill, the approval is kept, the reason is saved, and the team gets an alert in `#invoice-alerts`.
+- **Public demo uploads** stop at approval and never reach Xero.
+
 ## Tested, not just demoed
 - **13 test invoices** cover clean cases and the problems real AP teams see: duplicates, wrong math, missing or exceeded POs, unknown vendors, a blurry scan, a 2-page invoice and a euro invoice.
 - **AI accuracy is measured**, not assumed. Four OpenAI models were scored against an answer key, and the chosen one read all 13 invoices perfectly at about $0.0025 each. See [docs/extraction-eval.md](docs/extraction-eval.md).
 - **12 validation checks** with plain-English reasons, like "Total 1,560.00 is 30% over PO PO-1007 (1,200.00)." See [docs/validation.md](docs/validation.md).
-- **End-to-end test:** every sample goes through the live n8n workflow, and the extracted fields, final status, flags and database rows are all checked. Duplicate files, non-PDFs and bad credentials are rejected.
+- **End-to-end test:** every sample goes through the live n8n workflow, and the extracted fields, final status, flags and database rows are all checked.
+- **Approval test:** 7 scenarios using signed Slack clicks: approve, approve anyway, reject, demo upload, double click, a forged request, and a Xero rejection. Duplicate files, non-PDFs and bad credentials are rejected.
 
 ## Built with
 n8n, OpenAI API, Supabase, Next.js, Vercel, Slack, Xero.
