@@ -45,6 +45,14 @@ const out = [];
 
 for (const item of $input.all()) {
   const message = item.json;
+
+  // Gmail returns the sender and subject in a few shapes depending on the
+  // node version, so read the raw headers first and fall back from there.
+  const headers = {};
+  for (const h of message.payload?.headers || []) headers[String(h.name).toLowerCase()] = h.value;
+  const from = headers.from ?? message.From ?? message.from?.value?.[0]?.address ?? message.from ?? null;
+  const subject = headers.subject ?? message.Subject ?? message.subject ?? null;
+
   for (const [key, meta] of Object.entries(item.binary || {})) {
     const fileName = meta.fileName || '';
     const isPdf = meta.mimeType === 'application/pdf' || fileName.toLowerCase().endsWith('.pdf');
@@ -53,8 +61,8 @@ for (const item of $input.all()) {
       json: {
         file_name: fileName || 'invoice.pdf',
         message_id: message.id,
-        subject: message.subject ?? message.Subject ?? null,
-        from: message.from?.value?.[0]?.address ?? message.From ?? null,
+        subject: typeof subject === 'string' ? subject.slice(0, 200) : null,
+        from: typeof from === 'string' ? from.slice(0, 200) : null,
       },
       binary: { file: item.binary[key] },
     });
