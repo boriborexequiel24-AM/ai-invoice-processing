@@ -15,7 +15,7 @@ Full plan in [docs/PLAN.md](docs/PLAN.md).
 | 3. Extraction | Done: gpt-5.4-mini, 13/13 perfect (docs/extraction-eval.md) |
 | 4. Validation | Done: Postgres function `validate_invoice` (docs/validation.md), 13/13 end to end |
 | 5. Slack approval + Xero | Done: workflow 2 "Approval + Xero", 7/7 approval checks pass (`scripts/test_approval.py`). EUR bill fails because the Demo Company has no EUR (handled as an error, by design). |
-| 6. Dashboard | Built and tested locally (`npm run dev --prefix dashboard`, launch config "dashboard"). Not deployed to Vercel yet (needs a GitHub remote and his Vercel account). Hourly cleanup workflow 3 is active. |
+| 6. Dashboard | Done. Live at https://ai-invoice-processing-six.vercel.app (Vercel project "ai-invoice-processing" in his "workwithzeki" team, root directory `dashboard`, auto-deploys on push to main). Hourly cleanup workflow 3 is active. Keep Next.js patched: Vercel blocks deploys of vulnerable versions. |
 | 7. Polish | Not started |
 
 ## How things work

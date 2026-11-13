@@ -2,7 +2,7 @@
 
 Invoices come in by email or upload. AI reads them, the system checks them, a person approves them in Slack, and they get posted to Xero. A live dashboard shows every invoice and where it is.
 
-> Status: In development. Live demo link coming soon.
+**Live demo:** https://ai-invoice-processing-six.vercel.app (try a sample invoice or upload your own PDF)
 
 ## What it does
 1. **Receives invoices** from a Gmail inbox or a dashboard upload, and skips any file it has already seen.
