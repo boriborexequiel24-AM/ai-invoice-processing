@@ -5,7 +5,11 @@ A portfolio and demo project built by Exequiel to show prospective clients. It s
 
 **Project:** AI Invoice Processing System. Invoices are uploaded on the dashboard, AI (OpenAI for now) extracts the data, the system checks it (math, duplicates, PO match), a person approves it in Slack, and it gets posted to Xero. A live dashboard shows every invoice and its status.
 
-Email intake is workflow 4 (`scripts/email_intake_workflow.py`): a Gmail Trigger watches the `invoice-demo` label and posts each PDF to the same intake webhook the dashboard uses. Verified end to end on 2026-11-13. It runs on Exequiel's personal Gmail, so the label name is deliberately one no existing filter would apply: anything labelled is published on the public dashboard. Never widen that query or suggest an auto-filter for it.
+Email intake is workflow 4 (`scripts/email_intake_workflow.py`): every minute it searches Gmail for messages carrying the `invoice-demo` label, posts each PDF to the same intake webhook the dashboard uses, and takes the label off. Verified end to end on 2026-11-13.
+
+Two things about it must not be undone:
+- **It is a schedule, not n8n's Gmail Trigger.** That trigger only returns messages that *arrived* since its last poll, but the label is applied after arrival, so messages were silently skipped forever. It looked intermittent because it worked whenever the label happened to be applied inside the one-minute window.
+- **The label is `invoice-demo`, not `invoices`.** It runs on Exequiel's personal Gmail, and anything labelled is published on the public dashboard, so the label must be one no existing filter would ever apply. Never widen the query or suggest an auto-filter for it.
 
 ## Status
 Full plan in [docs/PLAN.md](docs/PLAN.md).

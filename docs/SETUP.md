@@ -71,17 +71,26 @@ Every value below goes in `.env` (copy it from `.env.example`). Never commit `.e
 
 Workflow 4 watches a Gmail label and posts each PDF to the same intake webhook the dashboard uses, so emailed and uploaded invoices follow one path.
 
+Verified end to end on 2026-11-13.
+
 **Anything this workflow picks up becomes public.** The PDF is stored, the data is extracted, and the invoice appears on a dashboard anyone can read. The label is the only thing deciding what gets in, so treat applying it as "publish this".
 
 A mailbox holding nothing private is safest. If you use an everyday account, the label name matters more: `invoice-demo` is used precisely because no existing filter will apply it by accident.
 
 - [ ] In the account, create a label named `invoice-demo` (no spaces, so it matches `label:invoice-demo`).
 - [ ] Do **not** add a filter that applies this label automatically. Apply it by hand, only to invoices that are safe to publish.
-- [ ] In n8n, open **Invoice Processing | 4. Email intake** and pick a **Gmail OAuth2** credential on the **New email** node. Create one if none points at the demo account.
-- [ ] Run `scripts/build_n8n_workflow.py --deploy` again so the credential is copied forward on future deploys.
+- [ ] In n8n, open **Invoice Processing | 4. Email intake** and pick a **Gmail OAuth2** credential on the **Get labels** node. Create one if none points at the right account.
+- [ ] Run `scripts/build_n8n_workflow.py --deploy` again, which copies that credential onto the other Gmail nodes.
 - [ ] Activate the workflow.
-- [ ] Test: email a PDF to that account, apply the `invoice-demo` label, and wait up to a minute. It should appear on the dashboard and in `#invoice-approvals`.
+- [ ] Test: email a PDF to that account, apply the `invoice-demo` label, and wait up to a minute. It should appear on the dashboard and in `#invoice-approvals`, and the label should come off the message.
 
-If the trigger never fires and leaves no execution behind, the credential has almost certainly expired. Open the Gmail Trigger node and click **Fetch Test Event** to see the real error: a poll trigger that fails to authenticate records nothing. Google expires refresh tokens after 7 days while the OAuth consent screen is in **Testing** mode, so publish the app in Google Cloud to stop it recurring.
+### How it decides what to process
+The label is the queue. Every minute the workflow searches for labelled messages with an attachment, posts each PDF, and then takes the label off. That is also the dedupe: once the label is gone the message is not seen again. If the hand-over fails the label stays on, so the next run retries it and an alert goes to `#invoice-alerts`.
 
-The workflow only reads labelled messages, only takes PDF attachments, and leaves the mail untouched. A repeat of the same file is answered with 409 by workflow 1 and is not processed twice. Anything else that fails raises an alert in `#invoice-alerts`.
+It does not use n8n's Gmail Trigger, and it should not be changed back. That trigger only returns messages that **arrived** since its last poll, but a label is always applied after a message arrives. The poll moves its clock past the message while it is still unlabelled, and the message can then never be picked up. It appears to work whenever you happen to label fast enough, which makes it look intermittent rather than broken.
+
+Successful runs are not saved, because the workflow runs every minute and usually finds nothing. Failures are saved.
+
+### If nothing happens
+- **Check the label exists and is spelled exactly `invoice-demo`.** Search `label:invoice-demo has:attachment` in Gmail: that is the query the workflow uses.
+- **Check the credential.** Open a Gmail node and run it. An authorization error means the refresh token has expired: reconnect the credential. Google expires refresh tokens after 7 days while the OAuth consent screen is in **Testing** mode, so publish the app in Google Cloud to stop it recurring.
