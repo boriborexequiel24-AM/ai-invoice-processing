@@ -23,6 +23,25 @@ None. Every model read every field correctly.
 
 **End-to-end check (n8n):** all 13 samples were uploaded to the live n8n webhook with `scripts/test_n8n_intake.py`. All 13 were read 10/10 and saved correctly (invoice row, line items, events). Re-uploading the same file returned 409, a non-PDF returned 415, and a wrong secret returned 403.
 
-**Speed note:** the AI call takes about 15 seconds from the n8n server versus about 3 seconds from a laptop, with identical token counts. The extra time is in the network path from the server to OpenAI, not the workflow. To look into later (for example an IPv6 routing delay on the VPS).
+## The retry setting that cost three calls per invoice
+
+For a while the AI step took about 18 seconds in n8n but about 3 seconds running the same request from a laptop. The obvious suspect was the network path from the server, and that was wrong.
+
+Timing outbound requests from the server settled it: OpenAI answered a connection in 263ms, and a small API call took 1.5s, the same as from a laptop. Sending the exact invoice payload from the server took 3.4s. So the request was never slow.
+
+The difference was the node's own `retryOnFail` setting. n8n runs a node `maxTries` times **even when the call succeeds**, which these measurements from the server show plainly:
+
+| Node setting | Time |
+|---|---|
+| No retry | 3.6s |
+| 2 tries, 3s apart | 9.5s |
+| 3 tries, no wait | 13.3s |
+| 3 tries, 3s apart (what the workflow had) | 16.0s |
+
+Every invoice was making three OpenAI calls instead of one: roughly five times slower, and three times the cost. Removing the setting brought the AI step to **4.1s** and the cost to one call.
+
+Retrying is still handled, just not there. A failure drops to the workflow's error branch, which records the reason and alerts. In the email workflow, a failed hand-over simply keeps the Gmail label, so the next run picks the message up again.
+
+The lesson worth keeping: a per-node retry that re-runs a paid API call is expensive in both senses, and n8n's does not wait for a failure to do it.
 
 **Limits of this test:** 13 generated invoices is a small set. Real invoices with handwriting, stamps or unusual layouts will be harder, which is why low-confidence reads go to manual review.

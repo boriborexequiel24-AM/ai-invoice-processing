@@ -327,9 +327,6 @@
           "timeout": 120000
         }
       },
-      "retryOnFail": true,
-      "maxTries": 3,
-      "waitBetweenTries": 3000,
       "onError": "continueErrorOutput"
     },
     {

@@ -2,7 +2,7 @@
 
 An invoice PDF goes in, a bill in the accounting system comes out. Email it or upload it, and AI reads it, the system checks it, a person approves it in Slack, and it gets posted to Xero. A live dashboard shows every invoice and where it is.
 
-**[Try the live demo](https://ai-invoice-processing-six.vercel.app).** Pick a sample invoice or upload your own PDF and watch it go through, in about 20 seconds.
+**[Try the live demo](https://ai-invoice-processing-six.vercel.app).** Pick a sample invoice or upload your own PDF and watch it go through, in about 15 seconds.
 
 ![The dashboard: how it works, the sample invoices you can try, and live metrics](docs/images/dashboard-home.png)
 
@@ -23,7 +23,7 @@ A web page where anyone can try the system and see every invoice.
 
 ![An invoice page: the original PDF beside what the AI read, with the problem found and a confidence score on every field](docs/images/dashboard-invoice.png)
 
-- **Try it:** six sample invoices (clean, math error, over budget, unknown vendor, blurry scan, euro) or your own PDF. A progress panel shows each step while it runs, about 20 seconds.
+- **Try it:** six sample invoices (clean, math error, over budget, unknown vendor, blurry scan, euro) or your own PDF. A progress panel shows each step while it runs, about 15 seconds.
 - **Invoice list** with status filters and a plain-English problem summary, plus live metrics: invoices processed, waiting, flagged, posted, and the average AI read time and cost.
 - **Invoice page:** the original PDF next to what the AI read (with a confidence score per field), the check results, line items, who approved it, the Xero link, and a full history timeline.
 - **Built for a public demo:** 5 tries per visitor per day, PDFs only, up to 5 MB, and a daily cap. Uploads are deleted after 24 hours by an hourly cleanup job and never reach Xero. Visitor IPs are only stored as salted hashes.

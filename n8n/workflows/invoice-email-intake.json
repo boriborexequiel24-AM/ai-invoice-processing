@@ -149,9 +149,6 @@
           }
         }
       },
-      "retryOnFail": true,
-      "maxTries": 2,
-      "waitBetweenTries": 5000,
       "alwaysOutputData": true
     },
     {

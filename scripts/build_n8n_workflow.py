@@ -397,7 +397,12 @@ def build_workflow(supabase_url: str, slack_channel: str) -> dict:
             "specifyBody": "json",
             "jsonBody": "={{ JSON.stringify($json.body) }}",
             "options": {"timeout": 120000},
-        }, retryOnFail=True, maxTries=3, waitBetweenTries=3000, onError="continueErrorOutput"),
+        # Deliberately no retryOnFail. n8n runs a node maxTries times even when
+        # the call succeeds, so retries here meant three OpenAI calls per
+        # invoice: five times slower and three times the cost, for nothing. A
+        # genuine failure drops to the error branch below, which records the
+        # reason and alerts, and the invoice can be sent again.
+        }, onError="continueErrorOutput"),
         node("Parse AI result", "n8n-nodes-base.code", 2, (x(12), y), {"jsCode": PARSE_CODE},
              onError="continueErrorOutput"),
         supabase_request(

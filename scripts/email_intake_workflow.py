@@ -172,7 +172,10 @@ def build_email_intake_workflow(env: dict) -> dict:
                 "timeout": 180000,
                 "response": {"response": {"fullResponse": True, "neverError": True}},
             },
-        }, retryOnFail=True, maxTries=2, waitBetweenTries=5000, alwaysOutputData=True),
+        # No retryOnFail: n8n runs a node maxTries times even on success, which
+        # would post every PDF twice. Retrying is handled better anyway, by
+        # leaving the Gmail label on so the next run picks the message up again.
+        }, alwaysOutputData=True),
         node("Summarize", "n8n-nodes-base.code", 2, (x(7), y), {"jsCode": SUMMARY_CODE}),
         if_node("Accepted?", (x(8), y),
                 "={{ " + json.dumps(ACCEPTED_CODES) + ".includes($json.status) }}",

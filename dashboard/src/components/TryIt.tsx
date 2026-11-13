@@ -5,8 +5,8 @@ import { useRouter } from "next/navigation";
 import { FEATURED_SAMPLES } from "@/lib/samples";
 
 const STAGES = [
-  { label: "Uploading the PDF", seconds: 2 },
-  { label: "Reading it with AI", seconds: 14 },
+  { label: "Uploading the PDF", seconds: 3 },
+  { label: "Reading it with AI", seconds: 6 },
   { label: "Running 12 checks", seconds: 3 },
   { label: "Posting to Slack for approval", seconds: 3 },
 ];
@@ -78,7 +78,7 @@ export function TryIt({ maxFileMb }: { maxFileMb: number }) {
       <div className="mb-4">
         <h2 className="text-base font-semibold">Try it</h2>
         <p className="text-sm text-slate-600">
-          Pick a sample invoice or upload your own PDF. It takes about 20 seconds.
+          Pick a sample invoice or upload your own PDF. It takes about 15 seconds.
         </p>
       </div>
 
