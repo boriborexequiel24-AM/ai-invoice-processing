@@ -140,6 +140,8 @@ const binaryKey = Object.keys(item.binary || {})[0];
 
 const requested = request.body?.source;
 const source = ['upload', 'sample', 'email'].includes(requested) ? requested : 'upload';
+// The dashboard sends a hashed visitor IP for rate limiting (never the raw IP).
+const ipHash = /^[a-f0-9]{64}$/.test(request.body?.ip_hash || '') ? request.body.ip_hash : null;
 
 if (!binaryKey) {
   return [{ json: { valid: false, status: 400, error: 'No file received. Send the PDF as multipart form field "file".' } }];
@@ -159,6 +161,7 @@ return [{
   json: {
     valid: true,
     source,
+    ip_hash: ipHash,
     file_name: meta.fileName || 'invoice.pdf',
     size_bytes: buffer.length,
     pdf_base64: buffer.toString('base64'),
@@ -366,6 +369,7 @@ def build_workflow(supabase_url: str, slack_channel: str) -> dict:
                  "  file_path: $('Hash file').first().json.file_hash + '.pdf',\n"
                  "  file_hash: $('Hash file').first().json.file_hash,\n"
                  "  file_name: $('Validate upload').first().json.file_name,\n"
+                 "  uploader_ip_hash: $('Validate upload').first().json.ip_hash,\n"
                  "  expires_at: $('Validate upload').first().json.source === 'upload'\n"
                  "    ? new Date(Date.now() + $('Config').first().json.upload_retention_hours * 3600 * 1000).toISOString()\n"
                  "    : null\n"
@@ -587,6 +591,7 @@ def write_public_copy(env: dict, workflow: dict, path: Path) -> None:
 
 def main() -> None:
     from approval_workflow import OUTPUT as APPROVAL_OUTPUT, build_approval_workflow
+    from cleanup_workflow import OUTPUT as CLEANUP_OUTPUT, build_cleanup_workflow
 
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--deploy", action="store_true", help="create or update the workflows in n8n")
@@ -595,12 +600,14 @@ def main() -> None:
     env = load_env()
     intake = build_workflow(env["SUPABASE_URL"].rstrip("/"), env["SLACK_APPROVALS_CHANNEL_ID"])
     approval = build_approval_workflow(env)
+    cleanup = build_cleanup_workflow(env)
 
     write_public_copy(env, intake, OUTPUT)
     write_public_copy(env, approval, APPROVAL_OUTPUT)
+    write_public_copy(env, cleanup, CLEANUP_OUTPUT)
 
     if args.deploy:
-        deploy(env, [intake, approval])
+        deploy(env, [intake, approval, cleanup])
 
 
 if __name__ == "__main__":

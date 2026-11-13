@@ -12,6 +12,15 @@ Invoices come in by email or upload. AI reads them, the system checks them, a pe
 5. **Posts approved invoices to Xero** as bills, with the PDF attached.
 6. **Logs every step**, so each invoice has a full history.
 
+## Live dashboard
+A web page where anyone can try the system and see every invoice.
+
+- **Try it:** six sample invoices (clean, math error, over budget, unknown vendor, blurry scan, euro) or your own PDF. A progress panel shows each step while it runs, about 20 seconds.
+- **Invoice list** with status filters and a plain-English problem summary, plus live metrics: invoices processed, waiting, flagged, posted, and the average AI read time and cost.
+- **Invoice page:** the original PDF next to what the AI read (with a confidence score per field), the check results, line items, who approved it, the Xero link, and a full history timeline.
+- **Built for a public demo:** 5 tries per visitor per day, PDFs only, up to 5 MB, and a daily cap. Uploads are deleted after 24 hours by an hourly cleanup job and never reach Xero. Visitor IPs are only stored as salted hashes.
+- **Private by default:** the browser never sees an API key. The page reads with a limited public key that can't see file paths, raw AI output or IP hashes, and PDFs open through short-lived signed links.
+
 ## Approval in Slack
 Every processed invoice lands in a Slack channel with its total, due date, PO, status and any problems in plain English, plus **Approve** and **Reject** buttons. Flagged invoices need an extra "are you sure?" click.
 
@@ -29,7 +38,19 @@ Every processed invoice lands in a Slack channel with its total, due date, PO, s
 - **Approval test:** 7 scenarios using signed Slack clicks: approve, approve anyway, reject, demo upload, double click, a forged request, and a Xero rejection. Duplicate files, non-PDFs and bad credentials are rejected.
 
 ## Built with
-n8n, OpenAI API, Supabase, Next.js, Vercel, Slack, Xero.
+n8n, OpenAI API, Supabase, Next.js 15, Tailwind CSS, PDF.js, Vercel, Slack, Xero.
+
+## Running the dashboard locally
+```bash
+.venv/Scripts/python.exe scripts/sync_dashboard_env.py
+```
+```bash
+npm install --prefix dashboard
+```
+```bash
+npm run dev --prefix dashboard
+```
+Then open http://localhost:3000.
 
 ## Project layout
 | Folder | What's in it |

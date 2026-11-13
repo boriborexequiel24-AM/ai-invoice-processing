@@ -55,6 +55,13 @@ Every value below goes in `.env` (copy it from `.env.example`). Never commit `.e
 - [ ] The Demo Company resets about every 28 days. When that happens, reconnect the credential.
 - [ ] Optional: the Demo Company only has USD. To post the EUR sample invoice, add EUR under Settings > Currencies in Xero.
 
+## 6. Dashboard
+- [ ] Run `supabase/migrations/20261116000000_dashboard_access.sql` (limits what the public key can read).
+- [ ] Fill the dashboard settings from the main `.env`: `.venv/Scripts/python.exe scripts/sync_dashboard_env.py` (also creates `IP_HASH_SALT`).
+- [ ] `npm install --prefix dashboard`, then `npm run dev --prefix dashboard` and open http://localhost:3000.
+- [ ] Activate **Invoice Processing | 3. Cleanup expired uploads** in n8n (hourly).
+- [ ] To publish: import the repo on vercel.com with **Root Directory** `dashboard`, and add the variables from `dashboard/.env.example` under Environment Variables.
+
 ## After Slack and Xero
 - [ ] Run the migrations again if any are new, then deploy: `.venv/Scripts/python.exe scripts/build_n8n_workflow.py --deploy`
 - [ ] Activate **Invoice Processing | 2. Approval + Xero**.
