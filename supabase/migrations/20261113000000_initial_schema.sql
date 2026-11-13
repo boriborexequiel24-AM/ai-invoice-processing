@@ -6,7 +6,7 @@ create extension if not exists "pgcrypto";
 -- Invoice lifecycle statuses
 create type invoice_status as enum (
   'received',            -- file stored, not processed yet
-  'extracting',          -- sent to Claude
+  'extracting',          -- sent to the AI model
   'ready_for_approval',  -- all checks passed
   'needs_review',        -- low confidence on one or more fields
   'flagged',             -- failed one or more checks
@@ -63,7 +63,7 @@ create table invoices (
 
   -- AI output and checks
   confidence        jsonb,                  -- per-field scores, e.g. {"total": 0.98}
-  raw_extraction    jsonb,                  -- full Claude response, for debugging
+  raw_extraction    jsonb,                  -- full AI response, for debugging
   flags             jsonb not null default '[]'::jsonb,  -- e.g. [{"code": "math_mismatch", "message": "..."}]
 
   -- Xero
@@ -100,7 +100,7 @@ create table invoice_events (
   id          bigint generated always as identity primary key,
   invoice_id  uuid not null references invoices(id) on delete cascade,
   step        text not null,     -- e.g. 'received', 'extracted', 'validated', 'approved', 'posted', 'error'
-  actor       text not null,     -- 'system', 'claude', or a Slack/dashboard user
+  actor       text not null,     -- 'system', 'ai', or a Slack/dashboard user
   details     jsonb,
   created_at  timestamptz not null default now()
 );

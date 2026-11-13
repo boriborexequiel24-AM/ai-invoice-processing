@@ -12,7 +12,7 @@ The portfolio is missing three things this project should cover:
 
 ```
 Email (Gmail)  ─┐
-                ├─> n8n: Intake ─> Claude: Extract ─> n8n: Validate ─> Slack: Approve ─> Xero: Create bill
+                ├─> n8n: Intake ─> AI: Extract ─> n8n: Validate ─> Slack: Approve ─> Xero: Create bill
 Dashboard upload┘        │                │                 │                 │                 │
                          └────────────────┴─────────────────┴─────────────────┴─────────────────┘
                                                   Supabase (invoices + audit log)
@@ -21,7 +21,7 @@ Dashboard upload┘        │                │                 │           
 ```
 
 1. **Intake.** An invoice arrives at a demo Gmail inbox, or someone uploads a PDF from the dashboard. The file is saved to Supabase Storage. A hash of the file stops the same invoice from being processed twice.
-2. **Extraction.** n8n sends the PDF to the Claude API and asks for strict JSON: vendor, invoice number, dates, currency, line items, subtotal, tax, total, PO number. Each field gets a confidence score.
+2. **Extraction.** n8n sends the PDF to the AI model (OpenAI for now) and asks for strict JSON: vendor, invoice number, dates, currency, line items, subtotal, tax, total, PO number. Each field gets a confidence score.
 3. **Validation.** A code step runs these checks:
    - Line items add up to the subtotal, and subtotal plus tax equals the total
    - The same vendor and invoice number don't already exist (duplicate check)
@@ -45,7 +45,7 @@ Dashboard upload┘        │                │                 │           
 | Part | Tool |
 |---|---|
 | Orchestration | n8n |
-| AI extraction | Claude API (PDF input, structured JSON output) |
+| AI extraction | OpenAI API (PDF input, structured JSON output), provider swappable |
 | Database, file storage | Supabase (Postgres + Storage) |
 | Dashboard | Next.js + Tailwind, hosted on Vercel |
 | Approvals, alerts | Slack app (buttons via interactivity webhook) |
@@ -75,9 +75,9 @@ Real Work Systems/
 ```
 
 ## Build phases
-1. **Setup.** git init, Supabase project, connect the self-hosted n8n, Anthropic API key, Slack app, Xero demo company, `.env.example`.
+1. **Setup.** git init, Supabase project, connect the self-hosted n8n, OpenAI API key, Slack app, Xero demo company, `.env.example`.
 2. **Sample invoices.** Make 10 to 15 fake invoices that cover the normal case and every edge case.
-3. **Extraction.** Intake workflow plus Claude extraction, saving results to Supabase. Test against all samples.
+3. **Extraction.** Intake workflow plus AI extraction, saving results to Supabase. Test against all samples.
 4. **Validation.** Math, duplicate, PO, vendor and confidence checks, with status and flag reasons.
 5. **Approval and posting.** Slack buttons, Xero bill creation, audit events, error workflow.
 6. **Dashboard.** List, detail, metrics, upload, demo mode. Deploy to Vercel.
@@ -85,7 +85,7 @@ Real Work Systems/
 
 ## Decisions made
 - **n8n hosting:** Use Exequiel's existing self-hosted n8n instance. It's already reachable at a public HTTPS URL, so Slack button clicks and dashboard uploads can call its webhooks directly. Keep the URL in `.env` (`N8N_BASE_URL`), never in code.
-
+- **AI provider:** OpenAI for now, using existing API credits. The extraction step reads `AI_PROVIDER` so Anthropic can be swapped in later, for example to compare accuracy and cost on the sample invoices.
 - **Public uploads:** Visitors can use the sample invoices or upload their own PDFs, with limits:
   - 5 uploads per visitor per day (rate limit by IP)
   - 5 MB max per file, PDF only, 10 pages max
@@ -94,4 +94,4 @@ Real Work Systems/
   - A notice on the upload screen: don't upload real or sensitive invoices.
 
 ## Open decisions
-- **Claude model:** Pick the current Sonnet model for extraction when we start the build, and test whether a smaller model is accurate enough to cut costs.
+- **Model:** Pick the OpenAI model for extraction when we start phase 3, and test whether a smaller, cheaper model is accurate enough.

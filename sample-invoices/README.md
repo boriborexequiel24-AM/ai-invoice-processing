@@ -18,7 +18,7 @@ Fake invoices for testing and demoing the system. Each one covers a normal case 
 | 12-multi-page-harbor | 32 line items over two pages | Ready for approval |
 | 13-euro-lindqvist | EUR with European date and number formats | Ready for approval |
 
-[expected.json](expected.json) has the exact values printed on each invoice. Phase 3 uses it to measure how accurately Claude extracts the data.
+[expected.json](expected.json) has the exact values printed on each invoice. Phase 3 uses it to measure how accurately the AI extracts the data.
 
 ## Regenerating
 ```bash
