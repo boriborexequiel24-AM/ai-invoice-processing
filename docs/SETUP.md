@@ -67,8 +67,18 @@ Every value below goes in `.env` (copy it from `.env.example`). Never commit `.e
 - [ ] Activate **Invoice Processing | 2. Approval + Xero**.
 - [ ] Test: `scripts/test_n8n_intake.py --reset`, then `scripts/test_approval.py`.
 
-## 7. Gmail intake (not built yet)
-Email intake is planned, not implemented. There is no Gmail trigger in any workflow. To add it, put a Gmail Trigger in front of the intake webhook and send the attachment with `source=email`.
+## 7. Email intake
 
-- [ ] Use a separate Gmail account for the demo inbox, not your personal one.
-- [ ] Create a label named `invoices` and a filter that applies it to messages with PDF attachments.
+Workflow 4 watches a Gmail label and posts each PDF to the same intake webhook the dashboard uses, so emailed and uploaded invoices follow one path.
+
+**Use a demo mailbox, not a client or personal one.** Anything this workflow picks up ends up in a public demo: the PDF is stored, the data is extracted, and the invoice appears on the dashboard for anyone to read. The label filter means only labelled messages are touched, but the account itself should still be one that holds nothing private.
+
+- [ ] Pick (or create) a Gmail account that holds no real mail.
+- [ ] In that account, create a label named `invoices`. Gmail search is case-insensitive, but the name must have no spaces to match `label:invoices`.
+- [ ] Optional: add a filter so invoices get the label automatically, for example "has attachment" plus a sender or subject rule. Otherwise label them by hand.
+- [ ] In n8n, open **Invoice Processing | 4. Email intake** and pick a **Gmail OAuth2** credential on the **New email** node. Create one if none points at the demo account.
+- [ ] Run `scripts/build_n8n_workflow.py --deploy` again so the credential is copied forward on future deploys.
+- [ ] Activate the workflow.
+- [ ] Test: email a PDF to that account, apply the `invoices` label, and wait up to a minute. It should appear on the dashboard and in `#invoice-approvals`.
+
+The workflow only reads labelled messages, only takes PDF attachments, and leaves the mail untouched. A repeat of the same file is answered with 409 by workflow 1 and is not processed twice. Anything else that fails raises an alert in `#invoice-alerts`.

@@ -5,6 +5,9 @@
    files scripts/eval_extraction.py tests, so n8n always runs the tested prompt.
 2. Approval + Xero: Slack button clicks, decision, bill in Xero
    (see scripts/approval_workflow.py).
+3. Cleanup: deletes expired demo uploads hourly (scripts/cleanup_workflow.py).
+4. Email intake: watches a Gmail label and posts PDFs to the intake webhook
+   (scripts/email_intake_workflow.py).
 
 Output is saved to n8n/workflows/ (with private values replaced) so it is
 versioned in git.
@@ -525,8 +528,18 @@ def n8n_api(env: dict, method: str, path: str, body: dict | None = None) -> dict
 PROJECT_PREFIX = "Invoice Processing |"
 
 
+# Nodes that need a credential without saying so in their parameters. Without
+# this, a deploy would wipe the credential picked in the n8n editor.
+IMPLICIT_CREDENTIALS = {
+    "n8n-nodes-base.gmailTrigger": "gmailOAuth2",
+    "n8n-nodes-base.gmail": "gmailOAuth2",
+}
+
+
 def needed_credential(node_: dict) -> str | None:
     """Which credential type a node needs, or None."""
+    if node_["type"] in IMPLICIT_CREDENTIALS:
+        return IMPLICIT_CREDENTIALS[node_["type"]]
     params = node_["parameters"]
     if params.get("authentication") == "predefinedCredentialType":
         return params.get("nodeCredentialType")
@@ -577,6 +590,8 @@ def write_public_copy(env: dict, workflow: dict, path: Path) -> None:
     text = json.dumps(workflow, indent=2, ensure_ascii=False)
     placeholders = {
         "SUPABASE_URL": "https://YOUR-PROJECT.supabase.co",
+        "N8N_BASE_URL": "https://YOUR-N8N-DOMAIN",
+        "N8N_WEBHOOK_SECRET": "YOUR-N8N-WEBHOOK-SECRET",
         "SLACK_SIGNING_SECRET": "YOUR-SLACK-SIGNING-SECRET",
         "SLACK_APPROVALS_CHANNEL_ID": "YOUR-APPROVALS-CHANNEL-ID",
         "SLACK_ALERTS_CHANNEL_ID": "YOUR-ALERTS-CHANNEL-ID",
@@ -592,6 +607,7 @@ def write_public_copy(env: dict, workflow: dict, path: Path) -> None:
 def main() -> None:
     from approval_workflow import OUTPUT as APPROVAL_OUTPUT, build_approval_workflow
     from cleanup_workflow import OUTPUT as CLEANUP_OUTPUT, build_cleanup_workflow
+    from email_intake_workflow import OUTPUT as EMAIL_OUTPUT, build_email_intake_workflow
 
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--deploy", action="store_true", help="create or update the workflows in n8n")
@@ -601,13 +617,15 @@ def main() -> None:
     intake = build_workflow(env["SUPABASE_URL"].rstrip("/"), env["SLACK_APPROVALS_CHANNEL_ID"])
     approval = build_approval_workflow(env)
     cleanup = build_cleanup_workflow(env)
+    email = build_email_intake_workflow(env)
 
     write_public_copy(env, intake, OUTPUT)
     write_public_copy(env, approval, APPROVAL_OUTPUT)
     write_public_copy(env, cleanup, CLEANUP_OUTPUT)
+    write_public_copy(env, email, EMAIL_OUTPUT)
 
     if args.deploy:
-        deploy(env, [intake, approval, cleanup])
+        deploy(env, [intake, approval, cleanup, email])
 
 
 if __name__ == "__main__":
