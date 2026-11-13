@@ -440,17 +440,43 @@
       "alwaysOutputData": true
     },
     {
-      "id": "df2d5d3e-dd21-5bf0-b90f-89a03a8c2d6b",
-      "name": "Reply extracted",
-      "type": "n8n-nodes-base.respondToWebhook",
-      "typeVersion": 1.1,
+      "id": "59b1adbb-3207-5c27-8677-f88598f8698d",
+      "name": "Validate invoice",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
       "position": [
         3840,
         300
       ],
       "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').first().json.supabase_url }}/rest/v1/rpc/validate_invoice",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": false,
+        "headerParameters": {
+          "parameters": []
+        },
+        "options": {},
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ p_invoice_id: $('Parse AI result').first().json.invoice_id }) }}"
+      },
+      "executeOnce": true,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "id": "1bf381b5-70d4-557a-845e-b1f8df812abb",
+      "name": "Reply processed",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        4080,
+        300
+      ],
+      "parameters": {
         "respondWith": "json",
-        "responseBody": "={{ { invoice_id: $('Parse AI result').first().json.invoice_id, status: 'extracted', min_confidence: $('Parse AI result').first().json.min_confidence, extracted: $('Parse AI result').first().json.extracted } }}",
+        "responseBody": "={{ { invoice_id: $json.invoice_id, status: $json.status, flags: $json.flags, min_confidence: $json.min_confidence, unsure_fields: $json.unsure_fields, extracted: $('Parse AI result').first().json.extracted } }}",
         "options": {
           "responseCode": 200
         }
@@ -482,7 +508,7 @@
         "options": {},
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ invoice_id: $('Create invoice row').first().json.id, step: 'error', actor: 'system', details: { stage: 'extraction', error: String($json.error?.message ?? $json.error ?? 'unknown error').slice(0, 500) } }) }}"
+        "jsonBody": "={{ JSON.stringify({ invoice_id: $('Create invoice row').first().json.id, step: 'error', actor: 'system', details: { stage: $('Validate invoice').isExecuted ? 'validation' : 'extraction', error: String($json.error?.message ?? $json.error ?? 'unknown error').slice(0, 500) } }) }}"
       },
       "executeOnce": true,
       "alwaysOutputData": true
@@ -529,7 +555,7 @@
       ],
       "parameters": {
         "respondWith": "json",
-        "responseBody": "={{ { error: 'extraction_failed', invoice_id: $('Create invoice row').first().json.id } }}",
+        "responseBody": "={{ { error: 'processing_failed', invoice_id: $('Create invoice row').first().json.id } }}",
         "options": {
           "responseCode": 502
         }
@@ -745,7 +771,25 @@
       "main": [
         [
           {
-            "node": "Reply extracted",
+            "node": "Validate invoice",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate invoice": {
+      "main": [
+        [
+          {
+            "node": "Reply processed",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log failure",
             "type": "main",
             "index": 0
           }

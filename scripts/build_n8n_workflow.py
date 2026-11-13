@@ -27,6 +27,7 @@ PROMPT = (ROOT / "extraction" / "prompt.md").read_text(encoding="utf-8").strip()
 SCHEMA = json.loads((ROOT / "extraction" / "schema.json").read_text(encoding="utf-8"))
 OUTPUT = ROOT / "n8n" / "workflows" / "invoice-intake-extraction.json"
 
+# Name kept from phase 3 so deploys update the same workflow (it now validates too).
 WORKFLOW_NAME = "Invoice Processing | 1. Intake + Extraction"
 WEBHOOK_PATH = "invoice-intake"
 BUCKET = "invoices"
@@ -355,15 +356,21 @@ def build_workflow(supabase_url: str) -> dict:
             body="={{ JSON.stringify($('Parse AI result').first().json.event) }}",
             prefer="return=minimal", executeOnce=True, alwaysOutputData=True,
         ),
-        respond("Reply extracted", (x(16), y), 200,
-                "={{ { invoice_id: $('Parse AI result').first().json.invoice_id, status: 'extracted', "
-                "min_confidence: $('Parse AI result').first().json.min_confidence, "
+        # Phase 4: run the checks in the database (supabase/migrations/*_validate_invoice.sql).
+        supabase_request(
+            "Validate invoice", (x(16), y), "POST", "/rest/v1/rpc/validate_invoice",
+            body="={{ JSON.stringify({ p_invoice_id: $('Parse AI result').first().json.invoice_id }) }}",
+            executeOnce=True, onError="continueErrorOutput",
+        ),
+        respond("Reply processed", (x(17), y), 200,
+                "={{ { invoice_id: $json.invoice_id, status: $json.status, flags: $json.flags, "
+                "min_confidence: $json.min_confidence, unsure_fields: $json.unsure_fields, "
                 "extracted: $('Parse AI result').first().json.extracted } }}"),
         # Error branch: log the error from the failed item first, then mark the invoice failed.
         supabase_request(
             "Log failure", (x(13), row2), "POST", "/rest/v1/invoice_events",
             body="={{ JSON.stringify({ invoice_id: $('Create invoice row').first().json.id, step: 'error', "
-                 "actor: 'system', details: { stage: 'extraction', "
+                 "actor: 'system', details: { stage: $('Validate invoice').isExecuted ? 'validation' : 'extraction', "
                  "error: String($json.error?.message ?? $json.error ?? 'unknown error').slice(0, 500) } }) }}",
             prefer="return=minimal", executeOnce=True, alwaysOutputData=True,
         ),
@@ -374,7 +381,7 @@ def build_workflow(supabase_url: str) -> dict:
             prefer="return=minimal", executeOnce=True, alwaysOutputData=True,
         ),
         respond("Reply failed", (x(15), row2), 502,
-                "={{ { error: 'extraction_failed', invoice_id: $('Create invoice row').first().json.id } }}"),
+                "={{ { error: 'processing_failed', invoice_id: $('Create invoice row').first().json.id } }}"),
     ]
 
     def link(*names: str) -> dict:
@@ -409,7 +416,11 @@ def build_workflow(supabase_url: str) -> dict:
         ]},
         "Save extraction": link("Save line items"),
         "Save line items": link("Log extracted"),
-        "Log extracted": link("Reply extracted"),
+        "Log extracted": link("Validate invoice"),
+        "Validate invoice": {"main": [
+            [{"node": "Reply processed", "type": "main", "index": 0}],
+            [{"node": "Log failure", "type": "main", "index": 0}],
+        ]},
         "Log failure": link("Mark failed"),
         "Mark failed": link("Reply failed"),
     }

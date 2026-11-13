@@ -1,8 +1,8 @@
 """End-to-end test: upload sample invoices to the live n8n webhook.
 
-Each PDF goes through the real workflow (store, dedupe, AI extraction, save to
-Supabase). The response is scored against sample-invoices/expected.json, and
-the database rows are checked too.
+Each PDF goes through the real workflow (store, dedupe, AI extraction,
+validation, save to Supabase). The extracted fields, final status and flags are
+scored against sample-invoices/expected.json, and the database rows are checked too.
 
 Usage (from the project root):
     .venv/Scripts/python.exe scripts/test_n8n_intake.py               # all 13 samples
@@ -103,20 +103,29 @@ def main() -> None:
             continue
 
         checks = score(case["printed"], body["extracted"])
-        _, rows = supabase(env, "GET", f"/rest/v1/invoices?select=status,total,invoice_line_items(count),invoice_events(step)&id=eq.{body['invoice_id']}")
+        _, rows = supabase(env, "GET", f"/rest/v1/invoices?select=status,flags,invoice_line_items(count),invoice_events(step)&id=eq.{body['invoice_id']}")
         row = rows[0]
         saved_ok = (
-            row["status"] == "extracted"
+            row["status"] == body["status"]
             and row["invoice_line_items"][0]["count"] == len(case["printed"]["line_items"])
-            and {e["step"] for e in row["invoice_events"]} >= {"received", "extracted"}
+            and {e["step"] for e in row["invoice_events"]} >= {"received", "extracted", "validated"}
         )
-        passed = sum(checks.values())
-        perfect += passed == len(checks) and saved_ok
-        misses = ", ".join(k for k, v in checks.items() if not v)
-        print(f"  {case['file']:<30} {passed}/{len(checks)} fields  db {'ok' if saved_ok else 'WRONG'}  "
-              f"conf {body['min_confidence']:.2f}  {seconds:4.1f}s" + (f"  missed: {misses}" if misses else ""))
 
-    print(f"\n{perfect}/{len(cases)} invoices extracted and saved correctly.")
+        # Status and flags must match the answer key ("a or b" means either is fine).
+        allowed = {s.strip() for s in case["expected_status"].split(" or ")}
+        got_flags = sorted(f["code"] for f in body["flags"] or [])
+        verdict_ok = body["status"] in allowed and got_flags == sorted(case["expected_flags"])
+
+        passed = sum(checks.values())
+        perfect += passed == len(checks) and saved_ok and verdict_ok
+        misses = ", ".join(k for k, v in checks.items() if not v)
+        verdict = body["status"] + (f" [{', '.join(got_flags)}]" if got_flags else "")
+        print(f"  {case['file']:<30} {passed}/{len(checks)} fields  db {'ok' if saved_ok else 'WRONG'}  "
+              f"{'OK   ' if verdict_ok else 'WRONG'} {verdict:<52} {seconds:4.1f}s"
+              + (f"  missed: {misses}" if misses else "")
+              + ("" if verdict_ok else f"  expected: {case['expected_status']} {case['expected_flags']}"))
+
+    print(f"\n{perfect}/{len(cases)} invoices extracted, validated and saved correctly.")
 
 
 if __name__ == "__main__":

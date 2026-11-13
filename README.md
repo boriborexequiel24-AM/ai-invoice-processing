@@ -15,7 +15,8 @@ Invoices come in by email or upload. AI reads them, the system checks them, a pe
 ## Tested, not just demoed
 - **13 test invoices** cover clean cases and the problems real AP teams see: duplicates, wrong math, missing or exceeded POs, unknown vendors, a blurry scan, a 2-page invoice and a euro invoice.
 - **AI accuracy is measured**, not assumed. Four OpenAI models were scored against an answer key, and the chosen one read all 13 invoices perfectly at about $0.0025 each. See [docs/extraction-eval.md](docs/extraction-eval.md).
-- **End-to-end test:** every sample goes through the live n8n workflow and the database rows are checked. Duplicate files, non-PDFs and bad credentials are rejected.
+- **12 validation checks** with plain-English reasons, like "Total 1,560.00 is 30% over PO PO-1007 (1,200.00)." See [docs/validation.md](docs/validation.md).
+- **End-to-end test:** every sample goes through the live n8n workflow, and the extracted fields, final status, flags and database rows are all checked. Duplicate files, non-PDFs and bad credentials are rejected.
 
 ## Built with
 n8n, OpenAI API, Supabase, Next.js, Vercel, Slack, Xero.
