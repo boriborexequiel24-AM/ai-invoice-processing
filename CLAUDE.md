@@ -70,5 +70,5 @@ Python scripts run from a project `.venv` (`.venv/Scripts/python.exe`). The samp
 
 ## Working Notes
 - Environment: Windows 11, PowerShell and Git Bash available.
-- Git repo on `main`, with git name/email set for this repo only. No GitHub remote yet, and the `gh` CLI isn't installed.
+- Git repo on `main`, with git name/email set for this repo only. Public GitHub remote: https://github.com/boriborexequiel24-AM/ai-invoice-processing (push only when Exequiel asks). The `gh` CLI isn't installed.
 - Account setup steps (Supabase, Slack, Xero, etc.) are in [docs/SETUP.md](docs/SETUP.md).
