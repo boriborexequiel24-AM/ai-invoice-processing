@@ -20,7 +20,12 @@ WORKFLOW_NAME = "Invoice Processing | 4. Email intake"
 
 # Gmail search. Only labelled messages with an attachment are picked up, so the
 # workflow never reads the rest of the mailbox.
-GMAIL_QUERY = "label:invoices has:attachment"
+#
+# The label is deliberately not something generic like "invoices": anything it
+# matches is extracted and shown on the public dashboard, so it must be a label
+# that no existing Gmail filter will ever apply on its own. Apply it by hand,
+# only to invoices that are safe to publish.
+GMAIL_QUERY = "label:invoice-demo has:attachment"
 
 # A repeat of the same file is not a problem: workflow 1 fingerprints every PDF
 # and answers 409 without processing it again.

@@ -1,6 +1,6 @@
 # AI Invoice Processing System
 
-An invoice PDF goes in, a bill in the accounting system comes out. AI reads the invoice, the system checks it, a person approves it in Slack, and it gets posted to Xero. A live dashboard shows every invoice and where it is.
+An invoice PDF goes in, a bill in the accounting system comes out. Email it or upload it, and AI reads it, the system checks it, a person approves it in Slack, and it gets posted to Xero. A live dashboard shows every invoice and where it is.
 
 **[Try the live demo](https://ai-invoice-processing-six.vercel.app).** Pick a sample invoice or upload your own PDF and watch it go through, in about 20 seconds.
 
@@ -11,7 +11,7 @@ An invoice PDF goes in, a bill in the accounting system comes out. AI reads the 
 ![Architecture: two n8n workflows, with a Slack approval in the middle, on top of Supabase](docs/images/architecture.svg)
 
 ## What it does
-1. **Receives invoices** uploaded on the dashboard, and skips any file it has already seen. The intake is a webhook, so an email or folder watcher can feed it the same way.
+1. **Receives invoices** emailed to a watched label or uploaded on the dashboard, and skips any file it has already seen. Both routes go through one webhook, so they share every step that follows.
 2. **Reads each invoice with AI** (OpenAI, with the provider swappable), pulling out the vendor, invoice number, dates, line items and totals, with a confidence score for each field.
 3. **Checks the numbers:** line items add up, no duplicate invoices, the purchase order exists and matches, the vendor is known.
 4. **Sends it for approval** in Slack with Approve and Reject buttons, and explains any problems in plain words.

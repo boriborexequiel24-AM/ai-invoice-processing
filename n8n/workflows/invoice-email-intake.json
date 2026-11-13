@@ -20,7 +20,7 @@
         },
         "simple": false,
         "filters": {
-          "q": "label:invoices has:attachment"
+          "q": "label:invoice-demo has:attachment"
         },
         "options": {
           "downloadAttachments": true

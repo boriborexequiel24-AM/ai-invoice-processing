@@ -499,8 +499,18 @@ def make_scanned(pdf_bytes: bytes) -> bytes:
 
 # ---------- Checks and output ----------
 
+# The invoice number sits in a narrow column in the header. Anything longer
+# wraps onto a second line, and a reader (AI or human) then sees the tail of the
+# number as the whole value. Keep generated numbers short enough to fit.
+MAX_INVOICE_NUMBER = 14
+
+
 def check_case(case: Case) -> None:
     """Make sure each invoice has exactly the problems it is meant to have."""
+    assert len(case.number) <= MAX_INVOICE_NUMBER, (
+        f"{case.file}: invoice number {case.number!r} is {len(case.number)} characters and would wrap "
+        f"onto two lines in the header (max {MAX_INVOICE_NUMBER})"
+    )
     flags = set(case.expected_flags)
     if "line_items_mismatch" not in flags:
         assert case.line_sum == case.subtotal, f"{case.file}: line items do not add up"
