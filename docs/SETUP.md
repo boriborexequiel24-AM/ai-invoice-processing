@@ -94,3 +94,14 @@ Successful runs are not saved, because the workflow runs every minute and usuall
 ### If nothing happens
 - **Check the label exists and is spelled exactly `invoice-demo`.** Search `label:invoice-demo has:attachment` in Gmail: that is the query the workflow uses.
 - **Check the credential.** Open a Gmail node and run it. An authorization error means the refresh token has expired: reconnect the credential. Google expires refresh tokens after 7 days while the OAuth consent screen is in **Testing** mode, so publish the app in Google Cloud to stop it recurring.
+
+### Keeping the Gmail connection alive
+While the Google Cloud project's OAuth app is in **Testing**, Google expires the refresh token 7 days after you connect it, and the workflow then stops without logging anything. Publishing the app removes that limit. It is tied to the publishing status, not to Google's app verification, so an unverified app in production is enough to stop the expiry.
+
+- [ ] Open [Google Cloud console](https://console.cloud.google.com) and select the project holding the Gmail OAuth client. If you are unsure which it is, copy the Client ID from the Gmail credential in n8n and look for it under **APIs & Services > Credentials**.
+- [ ] Go to **Google Auth Platform > Audience**.
+- [ ] Under **Publishing status**, click **Publish app** and confirm.
+- [ ] In n8n, reconnect the Gmail credential once so it issues a token under the new status.
+- [ ] Test: label an invoice `invoice-demo` and check it arrives.
+
+The trade-off: the app requests a Gmail scope, which Google treats as sensitive, so until the app is verified the consent screen shows a stronger "Google hasn't verified this app" warning and your app name and logo are hidden. For a personal mailbox connecting to your own project that is fine. For client work on a mailbox other people connect to, go through verification instead.
