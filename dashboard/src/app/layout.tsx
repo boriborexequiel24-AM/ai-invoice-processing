@@ -36,8 +36,12 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           </div>
         </header>
         <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6">{children}</main>
-        <footer className="mx-auto max-w-6xl px-4 pb-10 text-xs text-slate-500 sm:px-6">
-          All invoices, vendors and amounts are fake. Approved invoices post to a Xero demo company.
+        <footer className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-4 gap-y-2 px-4 pb-10 text-xs text-slate-500 sm:px-6">
+          <span>All invoices, vendors and amounts are fake. Approved invoices post to a Xero demo company.</span>
+          <span className="flex gap-4">
+            <Link href="/privacy" className="hover:text-brand-600">Privacy</Link>
+            <Link href="/terms" className="hover:text-brand-600">Terms</Link>
+          </span>
         </footer>
       </body>
     </html>
