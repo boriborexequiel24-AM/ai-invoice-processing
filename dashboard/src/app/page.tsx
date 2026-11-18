@@ -1,31 +1,43 @@
+import { FlaggedExample } from "@/components/FlaggedExample";
 import { HowItWorks } from "@/components/HowItWorks";
 import { InvoiceTable } from "@/components/InvoiceTable";
+import { MarkedUpInvoice } from "@/components/MarkedUpInvoice";
 import { MetricCards } from "@/components/MetricCards";
 import { TryIt } from "@/components/TryIt";
 import { env } from "@/lib/env";
-import { getMetrics, isFilterKey, listInvoices } from "@/lib/invoices";
+import { getMetrics, getShowcase, isFilterKey, listInvoices } from "@/lib/invoices";
 
 export const dynamic = "force-dynamic";
 
 export default async function Home({ searchParams }: { searchParams: Promise<{ status?: string }> }) {
   const { status } = await searchParams;
   const filter = isFilterKey(status) ? status : "all";
-  const [invoices, metrics] = await Promise.all([listInvoices(filter), getMetrics()]);
+  const [invoices, metrics, showcase] = await Promise.all([listInvoices(filter), getMetrics(), getShowcase()]);
 
   return (
-    <div className="space-y-8">
-      <section className="max-w-3xl">
-        <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">From PDF to approved bill, automatically.</h1>
-        <p className="mt-3 text-slate-600">
-          Invoices are read by AI, checked against purchase orders and the vendor list, sent to Slack for a one-click
-          approval, and posted to Xero. Every step is logged, and anything unusual is flagged in plain English.
+    <div className="space-y-14">
+      <section className="mx-auto max-w-4xl text-center">
+        <h1 className="m-0 font-serif text-[40px] font-medium leading-[1.05] tracking-tight sm:text-5xl lg:text-[56px]">
+          It reads every invoice the way a careful accountant would.{" "}
+          <em className="text-pen">In 15 seconds.</em>
+        </h1>
+        <p className="mx-auto mb-0 mt-5 max-w-2xl text-lg leading-relaxed text-ink-2">
+          {showcase.clean
+            ? "Here's one it checked. The red notes are what it found, field by field, before sending it to a person in Slack for approval and on to Xero."
+            : "AI reads the PDF, twelve checks catch what a careful clerk would, a person approves it in Slack, and the bill lands in Xero with the PDF attached."}
         </p>
       </section>
 
-      <HowItWorks />
-      <TryIt maxFileMb={env.maxFileMb()} />
+      {showcase.clean && <MarkedUpInvoice {...showcase.clean} />}
+
+      <section id="try" className="grid scroll-mt-6 items-start gap-10 lg:grid-cols-[1.4fr_1fr]">
+        <TryIt maxFileMb={env.maxFileMb()} />
+        {showcase.flagged && <FlaggedExample invoice={showcase.flagged} />}
+      </section>
+
       <MetricCards metrics={metrics} />
       <InvoiceTable invoices={invoices} filter={filter} />
+      <HowItWorks />
     </div>
   );
 }

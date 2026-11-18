@@ -28,7 +28,7 @@ export function PdfPreview({ url }: { url: string }) {
           const canvas = document.createElement("canvas");
           canvas.width = viewport.width;
           canvas.height = viewport.height;
-          canvas.className = "block h-auto w-full border-b border-slate-100 last:border-0";
+          canvas.className = "block h-auto w-full border-b border-rule last:border-0";
           canvas.setAttribute("aria-label", `Invoice page ${n} of ${doc.numPages}`);
           container.appendChild(canvas);
           await page.render({ canvasContext: canvas.getContext("2d")!, viewport }).promise;
@@ -47,15 +47,15 @@ export function PdfPreview({ url }: { url: string }) {
 
   return (
     <div>
-      <div className="flex items-center justify-between border-b border-slate-200 px-4 py-2 text-xs text-slate-500">
-        <span>Original PDF</span>
-        <a href={url} target="_blank" rel="noreferrer" className="font-medium text-brand-600 hover:underline">
+      <div className="flex items-center justify-between border-b border-edge px-4 py-2 font-mono text-xs text-muted">
+        <span>THE ORIGINAL PDF</span>
+        <a href={url} target="_blank" rel="noreferrer" className="text-ink underline hover:text-pen">
           Open PDF &rarr;
         </a>
       </div>
-      {state === "loading" && <p className="p-10 text-center text-sm text-slate-500">Loading the PDF…</p>}
+      {state === "loading" && <p className="p-10 text-center font-hand text-2xl text-muted">Loading the PDF...</p>}
       {state === "error" && (
-        <p className="p-10 text-center text-sm text-slate-500">
+        <p className="p-10 text-center text-sm text-muted">
           The preview couldn&apos;t load. Use &ldquo;Open PDF&rdquo; above.
         </p>
       )}

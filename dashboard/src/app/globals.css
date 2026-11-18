@@ -1,17 +1,51 @@
 @import "tailwindcss";
 
+/*
+ * "The Invoice Desk": paper and ink, like an accounts office, with red-pen
+ * notes for what the checks found. Picked on 2026-11-18 (design canvas,
+ * "Invoice A2: Marked-up invoice").
+ */
 @theme {
-  --color-brand-50: #eef4fa;
-  --color-brand-100: #d6e4f1;
-  --color-brand-500: #2c6aa0;
-  --color-brand-600: #1f4e79;
-  --color-brand-700: #173b5c;
-  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
-  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+  --color-paper: #f3eee3;
+  --color-paper-2: #fffdf7;
+  --color-ink: #1b2430;
+  --color-ink-2: #3c4552;
+  --color-muted: #5c6470;
+  --color-rule: #cfc5b0;
+  --color-edge: #d9d0bc;
+  --color-pen: #b3261e;
+  --color-pass: #2f6b3f;
+  --color-warn: #8a5a0b;
+  --color-mark: #fbe7a5;
+}
+
+/* "inline" because these point at the font variables next/font sets on <body>. */
+@theme inline {
+  --font-sans: var(--font-public-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-newsreader), Georgia, serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, monospace;
+  --font-hand: var(--font-caveat), cursive;
 }
 
 body {
-  background: var(--color-slate-50);
-  color: var(--color-slate-900);
+  background: var(--color-paper);
+  color: var(--color-ink);
   -webkit-font-smoothing: antialiased;
 }
+
+a {
+  text-underline-offset: 3px;
+}
+
+/* The torn top edge of a printed check tape. */
+.tape-edge {
+  background-image: radial-gradient(circle at 8px -2px, var(--color-paper) 6px, transparent 7px);
+  background-size: 16px 12px;
+  background-repeat: repeat-x;
+}
+
+@keyframes print-line {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: none; }
+}
+.print-line { animation: print-line 0.35s ease-out both; }

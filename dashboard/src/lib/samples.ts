@@ -1,14 +1,15 @@
 // Sample invoices offered on the dashboard. The PDFs are copied from
 // ../sample-invoices into public/samples by scripts/copy-samples.mjs.
 
+// `expect` is how the sample should end up, `note` the red-pen hint on its card.
 export const FEATURED_SAMPLES = [
-  { file: "01-clean-northwind.pdf", title: "Clean invoice", hint: "Should pass every check" },
-  { file: "06-math-error-harbor.pdf", title: "Math error", hint: "Line items don't add up" },
-  { file: "09-over-po-brightline.pdf", title: "Over budget", hint: "30% over its purchase order" },
-  { file: "10-unknown-vendor.pdf", title: "Unknown vendor", hint: "Not in the vendor list" },
-  { file: "11-blurry-scan-atlas.pdf", title: "Blurry scan", hint: "A photo-quality scan, no text layer" },
-  { file: "13-euro-lindqvist.pdf", title: "Euro invoice", hint: "European dates and number formats" },
-];
+  { file: "01-clean-northwind.pdf", title: "Clean invoice", hint: "Should pass every check", expect: "pass", note: "all ticks" },
+  { file: "06-math-error-harbor.pdf", title: "Math error", hint: "Line items don't add up", expect: "flag", note: "lines don't add up" },
+  { file: "09-over-po-brightline.pdf", title: "Over budget", hint: "30% over its purchase order", expect: "flag", note: "30% over the PO" },
+  { file: "10-unknown-vendor.pdf", title: "Unknown vendor", hint: "Not in the vendor list", expect: "flag", note: "who are they?" },
+  { file: "11-blurry-scan-atlas.pdf", title: "Blurry scan", hint: "A photo-quality scan, no text layer", expect: "pass", note: "read it anyway" },
+  { file: "13-euro-lindqvist.pdf", title: "Euro invoice", hint: "European dates and number formats", expect: "warn", note: "1.234,56 €" },
+] as const;
 
 /** Every sample the server route will accept (an allowlist, so no other file can be requested). */
 export const ALLOWED_SAMPLES = new Set([

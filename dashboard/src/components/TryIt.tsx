@@ -74,42 +74,43 @@ export function TryIt({ maxFileMb }: { maxFileMb: number }) {
   const busy = state.kind === "working";
 
   return (
-    <section className="rounded-xl border border-slate-200 bg-white p-5">
-      <div className="mb-4">
-        <h2 className="text-base font-semibold">Try it</h2>
-        <p className="text-sm text-slate-600">
-          Pick a sample invoice or upload your own PDF. It takes about 15 seconds.
-        </p>
-      </div>
+    <div>
+      <h2 className="m-0 font-serif text-3xl font-medium sm:text-[34px]">Now hand it a bad one</h2>
+      <p className="mb-5 mt-2 text-ink-2">
+        Each sample hides a different problem. Pick one and it goes through the real system, in about 15 seconds.
+      </p>
 
       {busy ? (
-        <div className="rounded-lg border border-brand-100 bg-brand-50 p-5" aria-live="polite">
-          <p className="mb-3 text-sm font-medium text-brand-700">Processing {state.name}</p>
-          <ol className="space-y-2">
-            {STAGES.map((s, i) => (
-              <li key={s.label} className="flex items-center gap-2 text-sm">
-                <span
-                  className={`size-2.5 rounded-full ${
-                    i < stage ? "bg-emerald-500" : i === stage ? "animate-pulse bg-brand-500" : "bg-slate-300"
-                  }`}
-                />
-                <span className={i <= stage ? "text-slate-900" : "text-slate-400"}>{s.label}</span>
+        <div className="tape-edge border border-t-0 border-edge bg-paper-2 px-5 pb-6 pt-5 font-mono text-[13px] leading-8" aria-live="polite">
+          <p className="m-0 mb-2 text-center text-muted">*** PROCESSING {state.name.toUpperCase()} ***</p>
+          <ol className="m-0 list-none p-0">
+            {STAGES.slice(0, stage + 1).map((s, i) => (
+              <li key={s.label} className="print-line flex justify-between gap-4">
+                <span>{s.label.toUpperCase()}</span>
+                <span className={i < stage ? "text-pass" : "animate-pulse text-muted"}>{i < stage ? "DONE ✓" : "..."}</span>
               </li>
             ))}
           </ol>
         </div>
       ) : (
-        <div className="grid gap-4 lg:grid-cols-[2fr_1fr]">
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+        <>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
             {FEATURED_SAMPLES.map((s) => (
               <button
                 key={s.file}
                 type="button"
                 onClick={() => trySample(s.file, s.title)}
-                className="rounded-lg border border-slate-200 p-3 text-left transition hover:border-brand-500 hover:bg-brand-50"
+                title={s.hint}
+                className="border border-edge bg-white p-4 text-left transition hover:-translate-y-0.5 hover:border-ink"
               >
-                <span className="block text-sm font-medium">{s.title}</span>
-                <span className="block text-xs text-slate-500">{s.hint}</span>
+                <span className="block font-serif text-[19px] leading-tight">{s.title}</span>
+                <span
+                  className={`mt-1 block font-hand text-[22px] leading-tight ${
+                    s.expect === "pass" ? "text-pass" : s.expect === "warn" ? "text-warn" : "text-pen"
+                  }`}
+                >
+                  {s.note}
+                </span>
               </button>
             ))}
           </div>
@@ -125,16 +126,18 @@ export function TryIt({ maxFileMb }: { maxFileMb: number }) {
               setDragging(false);
               uploadFile(e.dataTransfer.files[0]);
             }}
-            className={`flex flex-col items-center justify-center rounded-lg border-2 border-dashed p-4 text-center ${
-              dragging ? "border-brand-500 bg-brand-50" : "border-slate-300"
+            className={`mt-3 flex flex-wrap items-center justify-between gap-3 border border-dashed p-5 ${
+              dragging ? "border-ink bg-white" : "border-[#8c8370]"
             }`}
           >
-            <p className="text-sm font-medium">Drop a PDF here</p>
-            <p className="mb-2 text-xs text-slate-500">or</p>
+            <span className="font-serif text-[19px]">Or drop your own PDF here</span>
+            <span className="min-w-60 flex-1 text-[13px] text-muted">
+              Up to {maxFileMb} MB. No real or sensitive invoices please. Uploads are deleted after 24 hours and never sent to Xero.
+            </span>
             <button
               type="button"
               onClick={() => inputRef.current?.click()}
-              className="rounded-md bg-brand-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-brand-700"
+              className="bg-ink px-4 py-2.5 text-sm text-paper hover:bg-ink-2"
             >
               Choose a file
             </button>
@@ -145,18 +148,15 @@ export function TryIt({ maxFileMb }: { maxFileMb: number }) {
               className="hidden"
               onChange={(e) => uploadFile(e.target.files?.[0])}
             />
-            <p className="mt-3 text-xs text-slate-500">
-              PDF up to {maxFileMb} MB. Please don&apos;t upload real or sensitive invoices. Uploads are deleted after 24 hours and never sent to Xero.
-            </p>
           </div>
-        </div>
+        </>
       )}
 
       {state.kind === "error" && (
-        <p className="mt-3 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">
+        <p className="mt-3 border-l-4 border-pen bg-white px-4 py-3 text-sm text-pen" role="alert">
           {state.message}
         </p>
       )}
-    </section>
+    </div>
   );
 }

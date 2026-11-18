@@ -28,7 +28,7 @@ export default function Privacy() {
           </li>
           <li>Uploads are never posted to the accounting system. Only the built-in samples go that far.</li>
         </ul>
-        <p className="font-medium text-slate-900">
+        <p className="font-medium !text-ink">
           So please do not upload a real invoice, or any document with someone else&apos;s details on it. The sample
           invoices show the same thing with made-up data.
         </p>
@@ -70,7 +70,7 @@ export default function Privacy() {
         <p>
           Anything you upload disappears on its own within 24 hours. If you want it gone sooner, or you have a question
           about any of this, get in touch through{" "}
-          <a className="text-brand-600 underline" href="https://workwithzeki.vercel.app" target="_blank" rel="noreferrer">
+          <a className="underline" href="https://workwithzeki.vercel.app" target="_blank" rel="noreferrer">
             workwithzeki.vercel.app
           </a>
           .

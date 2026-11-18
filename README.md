@@ -4,7 +4,7 @@ An invoice PDF goes in, a bill in the accounting system comes out. Email it or u
 
 **[Try the live demo](https://ai-invoice-processing-six.vercel.app).** Pick a sample invoice or upload your own PDF and watch it go through, in about 15 seconds.
 
-![The dashboard: how it works, the sample invoices you can try, and live metrics](docs/images/dashboard-home.png)
+![The Invoice Desk: a real sample invoice with red-pen notes in the margins showing what each check found](docs/images/dashboard-home.png)
 
 ## How it fits together
 
@@ -19,19 +19,19 @@ An invoice PDF goes in, a bill in the accounting system comes out. Email it or u
 6. **Logs every step**, so each invoice has a full history.
 
 ## Live dashboard
-A web page where anyone can try the system and see every invoice.
+A web page where anyone can try the system and see every invoice, designed like an accounts office: paper, ink, and red-pen notes. The home page shows a real sample invoice with what each check found written in its margins.
 
-![An invoice page: the original PDF beside what the AI read, with the problem found and a confidence score on every field](docs/images/dashboard-invoice.png)
+![An invoice page: the original PDF beside the margin notes, all 12 checks with what each one found, and a confidence score on every field](docs/images/dashboard-invoice.png)
 
 - **Try it:** six sample invoices (clean, math error, over budget, unknown vendor, blurry scan, euro) or your own PDF. A progress panel shows each step while it runs, about 15 seconds.
 - **Invoice list** with status filters and a plain-English problem summary, plus live metrics: invoices processed, waiting, flagged, posted, and the average AI read time and cost.
-- **Invoice page:** the original PDF next to what the AI read (with a confidence score per field), the check results, line items, who approved it, the Xero link, and a full history timeline.
+- **Invoice page:** the original PDF next to its "margin notes": all 12 checks, each marked passed, failed or skipped with what it found. Then what the AI read (with a confidence score per field), line items, who approved it, the Xero link, and the full history printed like a check tape.
 - **Built for a public demo:** 5 tries per visitor per day, PDFs only, up to 5 MB, and a daily cap. Uploads are deleted after 24 hours by an hourly cleanup job and never reach Xero. Visitor IPs are only stored as salted hashes.
 - **Private by default:** the browser never sees an API key. The page reads with a limited public key that can't see file paths, raw AI output or IP hashes, and PDFs open through short-lived signed links.
 
 Every invoice shows its status and, where something is wrong, the reason in plain English:
 
-![The invoice list, with status badges and plain-English problem messages](docs/images/dashboard-list.png)
+![The ledger: every invoice with a status stamp and the problems in plain English](docs/images/dashboard-list.png)
 
 ## Approval in Slack
 Every processed invoice lands in a Slack channel with its total, due date, PO, status and any problems in plain English, plus **Approve** and **Reject** buttons. Flagged invoices need an extra "are you sure?" click.

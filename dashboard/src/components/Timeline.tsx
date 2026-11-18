@@ -25,19 +25,19 @@ function describe(event: InvoiceEvent): string | null {
   }
 }
 
+/** The invoice's history, printed like a check tape. */
 export function Timeline({ events }: { events: InvoiceEvent[] }) {
   return (
-    <ol className="space-y-4">
+    <ol className="tape-edge m-0 list-none border border-t-0 border-edge bg-paper-2 px-5 pb-5 pt-6 font-mono text-[13px]">
       {events.map((event) => (
-        <li key={event.id} className="relative flex gap-3">
-          <span
-            className={`mt-1.5 size-2.5 shrink-0 rounded-full ${event.step === "error" ? "bg-red-500" : "bg-brand-500"}`}
-          />
-          <div className="min-w-0">
-            <p className="text-sm font-medium">{STEP_LABELS[event.step] ?? event.step}</p>
-            {describe(event) && <p className="break-words text-xs text-slate-600">{describe(event)}</p>}
-            <p className="text-xs text-slate-400">{dateTime(event.created_at)}</p>
+        <li key={event.id} className="border-b border-dashed border-rule py-2.5 last:border-0">
+          <div className="flex flex-wrap justify-between gap-x-4">
+            <span className={`font-medium uppercase ${event.step === "error" ? "text-pen" : ""}`}>
+              {STEP_LABELS[event.step] ?? event.step}
+            </span>
+            <span className="text-muted">{dateTime(event.created_at)}</span>
           </div>
+          {describe(event) && <p className="m-0 mt-0.5 break-words text-ink-2">{describe(event)}</p>}
         </li>
       ))}
     </ol>

@@ -62,6 +62,45 @@ export async function getMetrics(): Promise<Metrics> {
   };
 }
 
+export type Showcase = {
+  clean: { invoice: Invoice; lines: LineItem[]; seconds: number | null } | null;
+  flagged: Invoice | null;
+};
+
+/**
+ * Real examples for the home page: the latest sample invoice that passed every
+ * check (with its line items and AI read time), and the latest flagged one.
+ * Visitor uploads are never used here.
+ */
+export async function getShowcase(): Promise<Showcase> {
+  const db = publicClient();
+  const { data } = await db
+    .from("invoices")
+    .select(INVOICE_COLUMNS)
+    .in("source", ["sample", "email"])
+    .order("created_at", { ascending: false })
+    .limit(40);
+  const recent = (data ?? []) as unknown as Invoice[];
+  const passed = recent.find(
+    (inv) => ["ready_for_approval", "approved", "posted"].includes(inv.status) && !(inv.flags ?? []).length && inv.po_number,
+  );
+  const flagged =
+    recent.find((inv) => inv.status === "flagged" && (inv.flags ?? []).some((f) => f.code === "po_amount_exceeded")) ??
+    recent.find((inv) => inv.status === "flagged") ??
+    null;
+
+  if (!passed) return { clean: null, flagged };
+  const [{ data: lines }, { data: read }] = await Promise.all([
+    db.from("invoice_line_items").select("id,position,description,quantity,unit_price,amount").eq("invoice_id", passed.id).order("position"),
+    db.from("invoice_events").select("details").eq("invoice_id", passed.id).eq("step", "extracted").limit(1).maybeSingle(),
+  ]);
+  const seconds = (read?.details as { seconds?: number } | null)?.seconds;
+  return {
+    clean: { invoice: passed, lines: (lines ?? []) as LineItem[], seconds: typeof seconds === "number" ? seconds : null },
+    flagged,
+  };
+}
+
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export async function getInvoice(id: string) {

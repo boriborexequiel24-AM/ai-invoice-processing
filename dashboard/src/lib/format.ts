@@ -25,17 +25,18 @@ export function dateTime(value: string | null | undefined): string {
   });
 }
 
+// Status labels, drawn as small rubber stamps (see StatusBadge).
 export const STATUS: Record<InvoiceStatus, { label: string; tone: string }> = {
-  received: { label: "Received", tone: "bg-slate-100 text-slate-700 ring-slate-200" },
-  extracting: { label: "Reading", tone: "bg-slate-100 text-slate-700 ring-slate-200" },
-  extracted: { label: "Checking", tone: "bg-slate-100 text-slate-700 ring-slate-200" },
-  ready_for_approval: { label: "Ready for approval", tone: "bg-emerald-50 text-emerald-700 ring-emerald-200" },
-  needs_review: { label: "Needs review", tone: "bg-amber-50 text-amber-800 ring-amber-200" },
-  flagged: { label: "Flagged", tone: "bg-red-50 text-red-700 ring-red-200" },
-  approved: { label: "Approved", tone: "bg-sky-50 text-sky-700 ring-sky-200" },
-  rejected: { label: "Rejected", tone: "bg-slate-100 text-slate-600 ring-slate-200" },
-  posted: { label: "Posted to Xero", tone: "bg-indigo-50 text-indigo-700 ring-indigo-200" },
-  failed: { label: "Failed", tone: "bg-red-50 text-red-700 ring-red-200" },
+  received: { label: "Received", tone: "text-muted border-rule" },
+  extracting: { label: "Reading", tone: "text-muted border-rule" },
+  extracted: { label: "Checking", tone: "text-muted border-rule" },
+  ready_for_approval: { label: "Ready for approval", tone: "text-pass border-pass" },
+  needs_review: { label: "Needs review", tone: "text-warn border-warn" },
+  flagged: { label: "Flagged", tone: "text-pen border-pen" },
+  approved: { label: "Approved", tone: "text-ink border-ink" },
+  rejected: { label: "Rejected", tone: "text-muted border-muted" },
+  posted: { label: "Posted to Xero", tone: "text-ink border-ink bg-mark" },
+  failed: { label: "Failed", tone: "text-pen border-pen" },
 };
 
 /** Plain-English labels for the history timeline. */
