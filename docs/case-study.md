@@ -17,7 +17,7 @@ Every number here comes from the project's own measurements. The one assumption 
 **Description (short):**
 An invoice PDF goes in and a bill in Xero comes out. AI reads the invoice, 12 checks catch the problems a person would catch, and a one-click approval in Slack is the only human step. Live demo you can try with your own PDF.
 
-**Metric to show:** `About 15 seconds per invoice, at roughly a quarter of a cent in AI cost`
+**Metric to show:** `About 4 seconds for the AI to read an invoice, about ten end to end, at roughly a quarter of a cent in AI cost`
 
 **Links:** Live demo · Code on GitHub
 
@@ -51,10 +51,12 @@ This is the part worth talking about with clients.
 | | |
 |---|---|
 | Field accuracy on the test set | 13 of 13 invoices, every field |
-| Time per invoice | About 15 seconds, then a one-click approval |
+| Time per invoice | About 4 seconds for the AI to read it, about ten from upload to waiting in Slack, then a one-click approval |
 | AI cost per invoice | About $0.0025, so roughly $2.50 per 1,000 |
 | Checks applied | 12, each with a plain-English reason |
 | Human steps | One: approve or reject |
+
+Every figure above is measured: accuracy, read time and cost come from `docs/extraction-eval.md` (13 invoices, gpt-5.4-mini), and the end-to-end time from live runs of `scripts/test_n8n_intake.py`, which came in between 6 and 12 seconds per invoice.
 
 For comparison, keying an invoice in by hand and checking it is usually a 5 to 10 minute job. That figure is a general industry rule of thumb, not a measurement from this project.
 

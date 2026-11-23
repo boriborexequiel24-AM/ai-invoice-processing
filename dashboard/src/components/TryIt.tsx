@@ -4,11 +4,14 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { FEATURED_SAMPLES } from "@/lib/samples";
 
+// Paced on the measured steps: the AI read takes about 4s (docs/extraction-eval.md) and a
+// whole run 6 to 12s through the live webhook. The last stage has no timer of its own; it
+// clears when the request comes back.
 const STAGES = [
-  { label: "Uploading the PDF", seconds: 3 },
-  { label: "Reading it with AI", seconds: 6 },
-  { label: "Running 12 checks", seconds: 3 },
-  { label: "Posting to Slack for approval", seconds: 3 },
+  { label: "Uploading the PDF", seconds: 2 },
+  { label: "Reading it with AI", seconds: 4 },
+  { label: "Running 12 checks", seconds: 1 },
+  { label: "Posting to Slack for approval", seconds: 2 },
 ];
 
 type State = { kind: "idle" } | { kind: "working"; name: string } | { kind: "error"; message: string };
@@ -77,7 +80,7 @@ export function TryIt({ maxFileMb }: { maxFileMb: number }) {
     <div>
       <h2 className="m-0 font-serif text-3xl font-medium sm:text-[34px]">Now hand it a bad one</h2>
       <p className="mb-5 mt-2 text-ink-2">
-        Each sample hides a different problem. Pick one and it goes through the real system, in about 15 seconds.
+        Each sample hides a different problem. Pick one and it goes through the real system, in about ten seconds.
       </p>
 
       {busy ? (
