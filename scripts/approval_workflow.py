@@ -98,8 +98,10 @@ return [{ json: { tenant_id: org.tenantId, tenant_name: org.tenantName } }];"""
 
 
 BUILD_BILL_CODE = """// Turn the approved invoice into a Xero bill (type ACCPAY).
-// Amounts are sent exactly as printed. Tax goes on its own line so the bill total
-// matches the invoice without depending on Xero's tax settings.
+// The bill has to come to exactly what the invoice says, because that is the
+// amount the approver saw in Slack and on the dashboard. The line detail is kept
+// whenever it reconciles, and anything left over goes on one labelled line
+// rather than quietly changing the amount payable.
 const config = $('Config').first().json;
 const inv = $('Load invoice').first().json;
 const accounts = $input.first().json.Accounts || [];
@@ -107,6 +109,13 @@ const account = accounts.find(a => a.Name === config.expense_account_name && a.C
 if (!account) throw new Error('No expense account with a code was found in Xero.');
 
 const round = v => Math.round(Number(v) * 100) / 100;
+const figure = v => (v === null || v === undefined || !Number.isFinite(Number(v)) ? null : round(v));
+const shown = v => v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const line = (description, value) => ({ Description: description, Quantity: 1, UnitAmount: value, AccountCode: account.Code });
+
+const total = figure(inv.total);
+const tax = figure(inv.tax) ?? 0;
+
 const lines = (inv.invoice_line_items || [])
   .sort((a, b) => a.position - b.position)
   .map(li => {
@@ -120,11 +129,33 @@ const lines = (inv.invoice_line_items || [])
       AccountCode: account.Code,
     };
   });
+
+// Xero works each line out as quantity x unit amount, rounded to the cent, and
+// the bill total is their sum (LineAmountTypes is NoTax).
+const billTotal = () => round(lines.reduce((running, l) => running + round(l.Quantity * l.UnitAmount), 0));
+
 if (!lines.length) {
-  lines.push({ Description: 'Invoice total', Quantity: 1, UnitAmount: Number(inv.subtotal ?? inv.total), AccountCode: account.Code });
+  // Nothing itemised: bill the subtotal, or the total less the tax, so that the
+  // tax line below lands on the printed total instead of on top of it.
+  const net = figure(inv.subtotal) ?? (total === null ? null : round(total - tax));
+  if (net === null) throw new Error('This invoice has no line items, no subtotal and no total, so there is nothing to bill.');
+  lines.push(line('Invoice total', net));
 }
-if (Number(inv.tax) > 0) {
-  lines.push({ Description: 'Tax (as printed on the invoice)', Quantity: 1, UnitAmount: Number(inv.tax), AccountCode: account.Code });
+
+// Tax on its own line, so the bill total doesn't depend on Xero's tax settings.
+// Skipped when the line items already include it, which their sum shows.
+if (tax > 0 && !(total !== null && billTotal() === total)) {
+  lines.push(line('Tax (as printed on the invoice)', tax));
+}
+
+// A flagged invoice can be approved anyway, so its own figures may not add up.
+// Post the amount printed on the invoice either way, with the gap spelled out.
+if (total !== null && billTotal() !== total) {
+  const lineSum = billTotal();
+  lines.push(line(
+    `Difference from the invoice total: the lines above come to ${shown(lineSum)}, the invoice says ${shown(total)}`,
+    round(total - lineSum),
+  ));
 }
 
 const bill = {
