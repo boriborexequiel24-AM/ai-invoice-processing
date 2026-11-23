@@ -508,7 +508,7 @@
         "options": {},
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ invoice_id: $('Read decision').first().json.invoice_id, step: 'posted', actor: 'system', details: { xero_invoice_id: $('Create Xero bill').first().json.Invoices[0].InvoiceID, xero_organisation: $('Pick Xero organisation').first().json.tenant_name, account_code: $('Build Xero bill').first().json.account_code, pdf_attached: !$('Attach PDF to bill').first().json.error } }) }}"
+        "jsonBody": "={{ JSON.stringify({ invoice_id: $('Read decision').first().json.invoice_id, step: 'posted', actor: 'system', details: { xero_invoice_id: $('Create Xero bill').first().json.Invoices[0].InvoiceID, bill_total: $('Create Xero bill').first().json.Invoices[0].Total, xero_organisation: $('Pick Xero organisation').first().json.tenant_name, account_code: $('Build Xero bill').first().json.account_code, pdf_attached: !$('Attach PDF to bill').first().json.error } }) }}"
       },
       "executeOnce": true,
       "alwaysOutputData": true

@@ -349,6 +349,9 @@ def build_approval_workflow(env: dict) -> dict:
             "Log posted", (x(19), row_xero), "POST", "/rest/v1/invoice_events",
             body="={{ JSON.stringify({ invoice_id: $('Read decision').first().json.invoice_id, step: 'posted', actor: 'system', "
                  "details: { xero_invoice_id: $('Create Xero bill').first().json.Invoices[0].InvoiceID, "
+                 # The amount Xero actually created the bill for. scripts/test_approval.py
+                 # checks it against the invoice total, so a wrong bill can't pass unnoticed.
+                 "bill_total: $('Create Xero bill').first().json.Invoices[0].Total, "
                  "xero_organisation: $('Pick Xero organisation').first().json.tenant_name, "
                  "account_code: $('Build Xero bill').first().json.account_code, "
                  "pdf_attached: !$('Attach PDF to bill').first().json.error } }) }}",
