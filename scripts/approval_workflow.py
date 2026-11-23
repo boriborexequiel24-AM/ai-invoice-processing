@@ -209,8 +209,13 @@ if (!$('Save decision').isExecuted) {
   text = `:x: Rejected by ${d.user}.`;
 } else if ($('Mark posted').isExecuted) {
   inv.status = 'posted';
-  const xeroId = $('Create Xero bill').first().json.Invoices[0].InvoiceID;
-  text = `:white_check_mark: Approved by ${d.user} and posted to Xero as a bill. <${config.xero_bill_url}${xeroId}|Open in Xero>`;
+  // The bill id arrives on the item from 'Log posted', which records it in the
+  // event details. Reading $('Create Xero bill') from this Code node instead
+  // returns undefined under n8n's task runner, which failed every posted
+  // approval here while the bill itself was created fine.
+  const xeroId = $input.first().json?.details?.xero_invoice_id;
+  const link = xeroId ? ` <${config.xero_bill_url}${xeroId}|Open in Xero>` : '';
+  text = `:white_check_mark: Approved by ${d.user} and posted to Xero as a bill.${link}`;
 } else if ($('Log Xero error').isExecuted) {
   inv.status = 'approved';
   text = `:white_check_mark: Approved by ${d.user}, but posting to Xero failed. Details were sent to the alerts channel.`;
@@ -347,7 +352,8 @@ def build_approval_workflow(env: dict) -> dict:
                  "xero_organisation: $('Pick Xero organisation').first().json.tenant_name, "
                  "account_code: $('Build Xero bill').first().json.account_code, "
                  "pdf_attached: !$('Attach PDF to bill').first().json.error } }) }}",
-            prefer="return=minimal", executeOnce=True, alwaysOutputData=True,
+            # Returns the saved row, so the bill id reaches 'Build Slack update' on the item.
+            prefer="return=representation", executeOnce=True, alwaysOutputData=True,
         ),
 
         # Xero error branch: keep the approval, record the error, tell the team.
