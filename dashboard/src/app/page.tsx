@@ -19,7 +19,9 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ s
       <section className="mx-auto max-w-4xl text-center">
         <h1 className="m-0 font-serif text-[40px] font-medium leading-[1.05] tracking-tight sm:text-5xl lg:text-[56px]">
           It reads every invoice the way a careful accountant would.{" "}
-          <em className="text-pen">Before anyone pays it.</em>
+          {/* Kept short enough to share the second line at the 896px desktop cap. The
+              non-breaking space stops "it." being left alone on a line at in-between widths. */}
+          <em className="text-pen">Before you pay&nbsp;it.</em>
         </h1>
         <p className="mx-auto mb-0 mt-5 max-w-2xl text-lg leading-relaxed text-ink-2">
           {showcase.clean
