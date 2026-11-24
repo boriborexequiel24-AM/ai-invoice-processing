@@ -32,6 +32,7 @@ PROMPT = (ROOT / "extraction" / "prompt.md").read_text(encoding="utf-8")
 SCHEMA = json.loads((ROOT / "extraction" / "schema.json").read_text(encoding="utf-8"))
 RESULTS_DIR = ROOT / "scripts" / "eval-results"
 REPORT = ROOT / "docs" / "extraction-eval.md"
+NOTES_START = "## How the model was chosen"
 
 # USD per 1M tokens: (input, cached input, output).
 # Source: developers.openai.com/api/docs/pricing, standard tier, checked 2026-11-13.
@@ -130,6 +131,12 @@ def money_equal(a, b) -> bool:
     return abs(float(a) - float(b)) < 0.005
 
 
+def quantity_equal(a, b) -> bool:
+    if a is None or b is None:
+        return a is None and b is None
+    return abs(float(a) - float(b)) < 0.0005  # the database keeps three decimals
+
+
 def score(expected: dict, actual: dict) -> dict:
     """Compare one extraction with the answer key. Returns per-check pass/fail."""
     checks = {}
@@ -141,9 +148,12 @@ def score(expected: dict, actual: dict) -> dict:
             checks[field] = normalize_text(want) == normalize_text(got)
 
     want_items, got_items = expected["line_items"], actual.get("line_items") or []
-    checks["line_items"] = len(want_items) == len(got_items) and all(
-        money_equal(w["amount"], g.get("amount")) for w, g in zip(want_items, got_items)
-    )
+    same = {"amount": money_equal, "quantity": quantity_equal, "unit_price": money_equal,
+            "description": lambda a, b: normalize_text(a) == normalize_text(b)}
+    for part, equal in same.items():
+        checks["line_items" if part == "amount" else f"line_{part}"] = len(want_items) == len(got_items) and all(
+            equal(w[part], g.get(part)) for w, g in zip(want_items, got_items)
+        )
     return checks
 
 
@@ -190,8 +200,9 @@ def write_report(summaries: list[dict], rows: list[dict], effort: str) -> None:
         "# Extraction accuracy test",
         "",
         f"Run on {datetime.now():%Y-%m-%d %H:%M} with `scripts/eval_extraction.py` (reasoning effort: {effort}).",
-        "Each invoice is checked on 10 things: vendor, invoice number, both dates, PO number, currency,",
-        "subtotal, tax, total, and every line item amount. The answer key is `sample-invoices/expected.json`.",
+        "Each invoice is checked on 13 things: vendor, invoice number, both dates, PO number, currency,",
+        "subtotal, tax, total, and the amount, quantity, unit price and description of every line item.",
+        "Text is compared ignoring case, spaces and punctuation. The answer key is `sample-invoices/expected.json`.",
         "",
         "| Model | Accuracy | Perfect invoices | Avg time | Cost per invoice | Errors |",
         "|---|---|---|---|---|---|",
@@ -212,7 +223,10 @@ def write_report(summaries: list[dict], rows: list[dict], effort: str) -> None:
         else:
             failed = ", ".join(k for k, v in r["checks"].items() if not v)
             lines.append(f"- **{r['model']}**, {r['file']}: wrong {failed}")
-    REPORT.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    # Everything from here down is written by hand, so it's kept.
+    old = REPORT.read_text(encoding="utf-8") if REPORT.exists() else ""
+    notes = old[old.index(NOTES_START):] if NOTES_START in old else ""
+    REPORT.write_text("\n".join(lines) + "\n" + (f"\n{notes}" if notes else ""), encoding="utf-8")
 
 
 def main() -> None:

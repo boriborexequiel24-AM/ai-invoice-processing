@@ -1,8 +1,9 @@
 # Extraction accuracy test
 
 Run on 2026-11-13 12:21 with `scripts/eval_extraction.py` (reasoning effort: low).
-Each invoice is checked on 10 things: vendor, invoice number, both dates, PO number, currency,
-subtotal, tax, total, and every line item amount. The answer key is `sample-invoices/expected.json`.
+Each invoice is checked on 13 things: vendor, invoice number, both dates, PO number, currency,
+subtotal, tax, total, and the amount, quantity, unit price and description of every line item.
+Text is compared ignoring case, spaces and punctuation. The answer key is `sample-invoices/expected.json`.
 
 | Model | Accuracy | Perfect invoices | Avg time | Cost per invoice | Errors |
 |---|---|---|---|---|---|
@@ -22,6 +23,19 @@ None. Every model read every field correctly.
 **Decision:** use **gpt-5.4-mini**. It was perfect on every invoice, the fastest, and had the steadiest confidence scores. At about $0.0025 per invoice, 1,000 invoices cost around $2.50. gpt-5.4-nano is a cheaper fallback if volume grows.
 
 **End-to-end check (n8n):** all 13 samples were uploaded to the live n8n webhook with `scripts/test_n8n_intake.py`. All 13 were read 10/10 and saved correctly (invoice row, line items, events). Re-uploading the same file returned 409, a non-PDF returned 415, and a wrong secret returned 403.
+
+## Stricter check, 2026-11-24
+
+The test used to check 10 things, and for line items only the amounts. Quantities and unit prices go on the Xero bill, so they and the descriptions are now checked too. Rescoring the saved answers from the run above gave the same result, and three new runs with gpt-5.4-mini were also perfect:
+
+| Run | Perfect invoices | Avg time | Cost per invoice |
+|---|---|---|---|
+| 2026-11-13, rescored | 13 / 13 | 3.4s | $0.0025 |
+| 2026-11-24, first | 13 / 13 | 5.3s | $0.0024 |
+| 2026-11-24, second | 13 / 13 | 4.1s | $0.0024 |
+| 2026-11-24, third | 13 / 13 | 3.8s | $0.0022 |
+
+The 13 sample invoices stored by the live n8n workflow also match the answer key on all 13 checks. Speed varies from run to run, so about 4 seconds is a fair figure and 3.4s was a fast run.
 
 ## The retry setting that cost three calls per invoice
 
