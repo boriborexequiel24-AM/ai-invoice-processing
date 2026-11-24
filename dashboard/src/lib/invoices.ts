@@ -38,25 +38,46 @@ export type Metrics = {
   avgCostUsd: number | null;
 };
 
+// Until 2026-11-13 17:37 UTC a retry setting made every read cost three AI calls
+// (docs/extraction-eval.md), so earlier readings don't describe this pipeline.
+const READS_SINCE = "2026-11-14T00:00:00Z";
+const READS_AVERAGED = 100;
+
 export async function getMetrics(): Promise<Metrics> {
   const db = publicClient();
-  const [{ data: rows, error }, { data: events }] = await Promise.all([
-    db.from("invoices").select("status"),
-    db.from("invoice_events").select("details").eq("step", "extracted").order("created_at", { ascending: false }).limit(500),
+
+  // Counted by the database: fetching the rows to count them stops at 1,000.
+  const count = async (...statuses: InvoiceStatus[]) => {
+    let query = db.from("invoices").select("id", { count: "exact", head: true });
+    if (statuses.length) query = query.in("status", statuses);
+    const { count: total, error } = await query;
+    if (error || total === null) throw new Error(`Could not load metrics: ${error?.message || "no count returned"}`);
+    return total;
+  };
+
+  const [processed, waiting, flagged, posted, { data: events, error }] = await Promise.all([
+    count(),
+    count("ready_for_approval", "needs_review"),
+    count("flagged"),
+    count("posted"),
+    db
+      .from("invoice_events")
+      .select("details,invoices!inner(id)") // the join leaves out expired uploads
+      .eq("step", "extracted")
+      .gte("created_at", READS_SINCE)
+      .order("created_at", { ascending: false })
+      .limit(READS_AVERAGED),
   ]);
   if (error) throw new Error(`Could not load metrics: ${error.message}`);
-
-  const statuses = (rows ?? []).map((r) => r.status as InvoiceStatus);
-  const count = (...s: InvoiceStatus[]) => statuses.filter((x) => s.includes(x)).length;
 
   const reads = (events ?? []).map((e) => e.details as { seconds?: number; cost_usd?: number } | null);
   const average = (values: number[]) => (values.length ? values.reduce((a, b) => a + b, 0) / values.length : null);
 
   return {
-    processed: statuses.length,
-    waiting: count("ready_for_approval", "needs_review"),
-    flagged: count("flagged"),
-    posted: count("posted"),
+    processed,
+    waiting,
+    flagged,
+    posted,
     avgSeconds: average(reads.map((r) => r?.seconds).filter((v): v is number => typeof v === "number")),
     avgCostUsd: average(reads.map((r) => r?.cost_usd).filter((v): v is number => typeof v === "number")),
   };
