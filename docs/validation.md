@@ -1,6 +1,6 @@
 # Validation rules
 
-After the AI reads an invoice, the database function `validate_invoice` checks it and sets its status. The rules live in [supabase/migrations/20261114000000_validate_invoice.sql](../supabase/migrations/20261114000000_validate_invoice.sql), so n8n, the dashboard and scripts all use the same logic. An invoice can be re-checked any time, for example after adding a missing vendor or PO.
+After the AI reads an invoice, the database function `validate_invoice` checks it and sets its status. The rules live in [supabase/migrations/20261124000000_po_vendor_unknown.sql](../supabase/migrations/20261124000000_po_vendor_unknown.sql) (the latest version of the function), so n8n, the dashboard and scripts all use the same logic. An invoice can be re-checked any time, for example after adding a missing vendor or PO.
 
 ## Checks
 
@@ -14,10 +14,25 @@ After the AI reads an invoice, the database function `validate_invoice` checks i
 | 6 | PO number is on the invoice | `missing_po` | There is no PO number on the invoice. |
 | 7 | PO exists | `po_not_found` | PO PO-2040 does not exist. |
 | 8 | PO is still open | `po_closed` | PO PO-1003 is already closed. |
-| 9 | PO belongs to this vendor | `po_vendor_mismatch` | PO PO-1002 belongs to a different vendor. |
+| 9 | PO belongs to this vendor | `po_vendor_mismatch` | PO PO-1002 belongs to a different vendor. An unknown vendor quoting a real PO fails this too. |
 | 10 | Invoice and PO use the same currency | `currency_mismatch` | Invoice is in USD, but PO PO-1010 is in EUR. |
 | 11 | Total is no more than 2% over the PO | `po_amount_exceeded` | Total 1,560.00 is 30% over PO PO-1007 (1,200.00). |
 | 12 | AI confidence is at least 0.80 on every field | (no flag) | Lists the unsure fields instead. |
+
+## When a check can't run
+Some checks need something to compare. They don't raise a flag when it's missing, and the dashboard shows them as skipped, not passed:
+
+| Check | Skipped when |
+|---|---|
+| 2 | There is no vendor name on the invoice, and its email matches nobody |
+| 3 | There are no line items, or no subtotal |
+| 4 | There is no subtotal, or no total |
+| 5 | There is no invoice number, or no vendor |
+| 7 | There is no PO number |
+| 8 to 11 | There is no PO number, or that PO doesn't exist |
+| 9 | Also when the vendor couldn't be identified |
+| 10 | Also when there is no currency |
+| 11 | Also when there is no total |
 
 ## Result
 

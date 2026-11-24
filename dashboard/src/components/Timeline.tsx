@@ -11,7 +11,7 @@ function describe(event: InvoiceEvent): string | null {
       return `${d.model} in ${d.seconds}s, cost $${Number(d.cost_usd ?? 0).toFixed(4)}, lowest confidence ${Number(d.min_confidence ?? 0).toFixed(2)}`;
     case "validated": {
       const flags = Array.isArray(d.flags) ? d.flags.length : 0;
-      return flags ? `${flags} problem${flags > 1 ? "s" : ""} found` : "All checks passed";
+      return flags ? `${flags} problem${flags > 1 ? "s" : ""} found` : "No problems found";
     }
     case "approved":
     case "rejected":

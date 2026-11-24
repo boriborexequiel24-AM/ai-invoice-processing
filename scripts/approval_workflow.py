@@ -210,9 +210,9 @@ if (!$('Save decision').isExecuted) {
 } else if ($('Mark posted').isExecuted) {
   inv.status = 'posted';
   // The bill id arrives on the item from 'Log posted', which records it in the
-  // event details. Reading $('Create Xero bill') from this Code node instead
-  // returns undefined under n8n's task runner, which failed every posted
-  // approval here while the bill itself was created fine.
+  // event details. Don't use $('Create Xero bill').first() here: without a branch
+  // number n8n follows the shortest route back to that node, which is its error
+  // output (through 'Alert team'), and that is empty when the bill was created.
   const xeroId = $input.first().json?.details?.xero_invoice_id;
   const link = xeroId ? ` <${config.xero_bill_url}${xeroId}|Open in Xero>` : '';
   text = `:white_check_mark: Approved by ${d.user} and posted to Xero as a bill.${link}`;

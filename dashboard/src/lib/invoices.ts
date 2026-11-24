@@ -3,7 +3,7 @@ import type { Invoice, InvoiceEvent, InvoiceStatus, LineItem } from "./types";
 
 // Only display columns. Internal ones (file path, raw AI output, IP hash) aren't readable with the public key anyway.
 const INVOICE_COLUMNS =
-  "id,source,status,file_name,vendor_name_raw,invoice_number,invoice_date,due_date,currency," +
+  "id,source,status,file_name,vendor_id,vendor_name_raw,invoice_number,invoice_date,due_date,currency," +
   "subtotal,tax,total,po_number,confidence,flags,xero_url,decided_by,decided_at,expires_at,created_at";
 
 export const FILTERS = {

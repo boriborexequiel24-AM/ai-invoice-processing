@@ -17,6 +17,7 @@ export type Invoice = {
   source: "upload" | "sample" | "email";
   status: InvoiceStatus;
   file_name: string | null;
+  vendor_id: string | null;
   vendor_name_raw: string | null;
   invoice_number: string | null;
   invoice_date: string | null;

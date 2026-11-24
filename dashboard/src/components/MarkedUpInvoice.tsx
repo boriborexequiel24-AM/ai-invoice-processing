@@ -5,8 +5,8 @@ import type { Invoice, LineItem } from "@/lib/types";
 
 // The home page centrepiece: a real sample invoice that passed, drawn as a
 // paper invoice, with red-pen notes in the margins saying what each check
-// found. The notes come from checkResults(), so they are the invoice's real
-// results, not decoration.
+// found. The notes and their ticks come from checkResults(), so they are the
+// invoice's real results, not decoration.
 
 const MAX_LINES = 6;
 
@@ -25,8 +25,14 @@ export function MarkedUpInvoice({
   lines: LineItem[];
   seconds: number | null;
 }) {
-  const checks = checkResults(inv);
-  const by = (label: string) => checks.find((c) => c.label === label);
+  const checks = checkResults(inv, lines.length);
+  // A margin note: its own wording with a tick if every check behind it passed,
+  // otherwise whatever the first one that didn't pass had to say.
+  const note = (text: string, ...labels: string[]) => {
+    const missed = checks.find((c) => labels.includes(c.label) && c.state !== "pass");
+    return missed ? missed.note : `${text} ✓`;
+  };
+  const passNote = (label: string) => checks.find((c) => c.label === label)?.note ?? "";
   const shown = lines.slice(0, MAX_LINES);
   const scores = Object.values(inv.confidence ?? {}).filter((s): s is number => typeof s === "number");
   const lowest = scores.length ? Math.floor(Math.min(...scores) * 100) : null;
@@ -40,13 +46,13 @@ export function MarkedUpInvoice({
       <div className="flex flex-col items-stretch justify-center gap-5 lg:flex-row">
         <div className="flex flex-col justify-around gap-4 lg:w-52 lg:shrink-0">
           <Note side="left">
-            known vendor ✓ <span className="hidden lg:inline">&rarr;</span>
+            {note("known vendor", "Known vendor")} <span className="hidden lg:inline">&rarr;</span>
           </Note>
           <Note side="left">
-            lines add up to {money(inv.subtotal)} ✓ <span className="hidden lg:inline">&rarr;</span>
+            {note(`lines add up to ${money(inv.subtotal)}`, "Line items add up")} <span className="hidden lg:inline">&rarr;</span>
           </Note>
           <Note side="left">
-            {by("Not a duplicate")?.note} ✓ <span className="hidden lg:inline">&rarr;</span>
+            {note(passNote("Not a duplicate"), "Not a duplicate")} <span className="hidden lg:inline">&rarr;</span>
           </Note>
         </div>
 
@@ -118,15 +124,15 @@ export function MarkedUpInvoice({
         <div className="flex flex-col justify-around gap-4 lg:w-52 lg:shrink-0">
           <Note side="right">
             <span className="hidden lg:inline">&larr; </span>
-            {inv.po_number} is open, same vendor ✓
+            {note(`${inv.po_number} is open, same vendor`, "PO exists", "PO is still open", "PO is for this vendor")}
           </Note>
           <Note side="right">
             <span className="hidden lg:inline">&larr; </span>
-            {by("Subtotal plus tax equals total")?.note} ✓
+            {note(passNote("Subtotal plus tax equals total"), "Subtotal plus tax equals total")}
           </Note>
           <Note side="right">
             <span className="hidden lg:inline">&larr; </span>
-            within 2% of the PO ✓
+            {note("within 2% of the PO", "Within 2% of the PO")}
           </Note>
         </div>
       </div>

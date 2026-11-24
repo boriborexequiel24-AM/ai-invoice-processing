@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { PdfPreview } from "@/components/PdfPreview";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Timeline } from "@/components/Timeline";
-import { CHECKED, checkResults } from "@/lib/checks";
+import { CHECKED, checkResults, checkSummary } from "@/lib/checks";
 import { date, dateTime, FIELD_LABELS, money } from "@/lib/format";
 import { getInvoice, pdfLink } from "@/lib/invoices";
 
@@ -25,7 +25,7 @@ export default async function InvoicePage({
   const { invoice: inv, lines, events } = result;
   const pdf = await pdfLink(id);
   const confidence = inv.confidence ?? {};
-  const checks = CHECKED.includes(inv.status) ? checkResults(inv) : null;
+  const checks = CHECKED.includes(inv.status) ? checkResults(inv, lines.length) : null;
   const failed = checks?.filter((c) => c.state === "fail").length ?? 0;
 
   const fields: [string, string, string | null][] = [
@@ -90,7 +90,7 @@ export default async function InvoicePage({
             {checks ? (
               <>
                 <p className="m-0 mt-1 text-sm text-muted">
-                  {failed ? `${failed} of 12 checks found a problem.` : "All 12 checks passed."}
+                  {checkSummary(checks)}
                 </p>
                 <ol className="m-0 mt-4 list-none border-t border-ink p-0">
                   {checks.map((c) => (
