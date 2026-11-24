@@ -44,6 +44,9 @@ UPLOAD_RETENTION_HOURS = 24
 # How many times a day one file may be tried if processing keeps failing. Every
 # try is a paid AI call, and email intake retries once a minute.
 MAX_TRIES_PER_DAY = 3
+# An invoice still in progress after this long was abandoned, for example by an n8n
+# restart. A run takes about 10 seconds, and 2 to 3 minutes if the AI times out.
+ABANDONED_AFTER_MINUTES = 10
 
 # Chosen in docs/extraction-eval.md. Prices are USD per 1M tokens (input, cached input, output).
 MODEL = "gpt-5.4-mini"
@@ -80,8 +83,12 @@ def node(name: str, type_: str, version: float, position: tuple[int, int], param
 
 
 def supabase_request(name: str, position, method: str, path: str, body: str | None = None,
-                     prefer: str | None = None, **extra) -> dict:
-    """HTTP Request node that calls Supabase with the 'Supabase account' credential."""
+                     prefer: str | None = None, full_response: bool = False, **extra) -> dict:
+    """HTTP Request node that calls Supabase with the 'Supabase account' credential.
+
+    full_response gives one item even when the reply is empty. Nodes with an error branch
+    need that instead of alwaysOutputData, which would also run the success branch on an error.
+    """
     headers = [{"name": "Prefer", "value": prefer}] if prefer else []
     params = {
         "method": method,
@@ -90,7 +97,7 @@ def supabase_request(name: str, position, method: str, path: str, body: str | No
         "nodeCredentialType": "supabaseApi",
         "sendHeaders": bool(headers),
         "headerParameters": {"parameters": headers},
-        "options": {},
+        "options": {"response": {"response": {"fullResponse": True}}} if full_response else {},
     }
     if body is not None:
         params.update({"sendBody": True, "specifyBody": "json", "jsonBody": body})
@@ -134,6 +141,7 @@ return [{{
     max_upload_mb: {MAX_UPLOAD_MB},
     upload_retention_hours: {UPLOAD_RETENTION_HOURS},
     max_tries_per_day: {MAX_TRIES_PER_DAY},
+    abandoned_after_minutes: {ABANDONED_AFTER_MINUTES},
   }},
   binary: $input.first().binary,
 }}];"""
@@ -360,7 +368,7 @@ def build_workflow(supabase_url: str, slack_channel: str) -> dict:
         }),
         supabase_request(
             "Find existing file", (x(6), y), "GET",
-            "/rest/v1/invoices?select=id,status,invoice_events(step,created_at)&file_hash=eq.{{ $('Hash file').first().json.file_hash }}",
+            "/rest/v1/invoices?select=id,status,updated_at,invoice_events(step,created_at)&file_hash=eq.{{ $('Hash file').first().json.file_hash }}",
             alwaysOutputData=True,
         ),
         if_node("Already processed?", (x(7), y), "={{ $json.id }}",
@@ -369,9 +377,12 @@ def build_workflow(supabase_url: str, slack_channel: str) -> dict:
                 "={{ { error: 'duplicate_file', message: 'This exact file was already processed.', "
                 "invoice_id: $('Find existing file').first().json.id, "
                 "status: $('Find existing file').first().json.status } }}"),
-        # A file whose processing failed may be sent again, up to the daily limit. Its
-        # row is reused, because file_hash is unique and the history stays in one place.
-        if_node("Failed before?", (x(8), row3), "={{ $json.status === 'failed' }}",
+        # A file whose processing failed, or was abandoned halfway, may be sent again, up to the
+        # daily limit. Its row is reused, because file_hash is unique and the history stays in one place.
+        if_node("Can be retried?", (x(8), row3),
+                "={{ $json.status === 'failed' || (['received', 'extracting', 'extracted'].includes($json.status) "
+                "&& Date.now() - new Date($json.updated_at).getTime() "
+                "> $('Config').first().json.abandoned_after_minutes * 60000) }}",
                 {"type": "boolean", "operation": "true", "singleValue": True}),
         if_node("Tries left?", (x(9), row3),
                 "={{ ($json.invoice_events || []).filter(e => e.step === 'received' "
@@ -381,10 +392,12 @@ def build_workflow(supabase_url: str, slack_channel: str) -> dict:
         respond("Reply too many tries", (x(10), row4), 429,
                 "={{ { error: 'too_many_tries', message: 'This file could not be processed after several tries. "
                 "Please try again tomorrow.', invoice_id: $json.id } }}"),
-        # The status filter means only one of two simultaneous retries gets through.
+        # Only goes through if the row hasn't changed since it was looked up, so just one of two
+        # simultaneous retries wins, and a run that is still alive keeps its invoice.
         supabase_request(
             "Reopen failed invoice", (x(10), row3), "PATCH",
-            "/rest/v1/invoices?id=eq.{{ $json.id }}&status=eq.failed",
+            "/rest/v1/invoices?id=eq.{{ $json.id }}&status=eq.{{ $json.status }}"
+            "&updated_at=eq.{{ encodeURIComponent($json.updated_at) }}",
             body="={{ JSON.stringify({\n"
                  "  status: 'extracting',\n"
                  "  source: $('Validate upload').first().json.source,\n"
@@ -457,12 +470,13 @@ def build_workflow(supabase_url: str, slack_channel: str) -> dict:
         supabase_request(
             "Save extraction", (x(13), y), "PATCH",
             "/rest/v1/invoices?id=eq.{{ $json.invoice_id }}",
-            body="={{ JSON.stringify($json.patch) }}", prefer="return=minimal", executeOnce=True, alwaysOutputData=True,
+            body="={{ JSON.stringify($json.patch) }}", prefer="return=minimal", executeOnce=True,
+            full_response=True, onError="continueErrorOutput",  # e.g. an impossible date or a number too large
         ),
         supabase_request(
             "Save line items", (x(14), y), "POST", "/rest/v1/invoice_line_items",
             body="={{ JSON.stringify($('Parse AI result').first().json.line_items) }}",
-            prefer="return=minimal", executeOnce=True, alwaysOutputData=True,
+            prefer="return=minimal", executeOnce=True, full_response=True, onError="continueErrorOutput",
         ),
         supabase_request(
             "Log extracted", (x(15), y), "POST", "/rest/v1/invoice_events",
@@ -494,11 +508,15 @@ def build_workflow(supabase_url: str, slack_channel: str) -> dict:
                 "slack_posted: $('Post to Slack').first().json.ok === true, "
                 "extracted: $('Parse AI result').first().json.extracted } }}"),
         # Error branch: log the error from the failed item first, then mark the invoice failed.
+        # The database's own explanation is logged for save and check errors. The AI provider's isn't:
+        # it can quote part of the API key, and this history is public.
         supabase_request(
             "Log failure", (x(13), row2), "POST", "/rest/v1/invoice_events",
             body="={{ JSON.stringify({ invoice_id: $('Invoice row').first().json.id, step: 'error', "
-                 "actor: 'system', details: { stage: $('Validate invoice').isExecuted ? 'validation' : 'extraction', "
-                 "error: String($json.error?.message ?? $json.error ?? 'unknown error').slice(0, 500) } }) }}",
+                 "actor: 'system', details: { stage: $('Validate invoice').isExecuted ? 'validation' "
+                 ": $('Save extraction').isExecuted ? 'saving' : 'extraction', "
+                 "error: String(($('Save extraction').isExecuted && $json.error?.description) || ($json.error?.message ?? $json.error ?? 'unknown error'))"
+                 ".slice(0, 500) } }) }}",
             prefer="return=minimal", executeOnce=True, alwaysOutputData=True,
         ),
         supabase_request(
@@ -527,10 +545,10 @@ def build_workflow(supabase_url: str, slack_channel: str) -> dict:
         "Store PDF": link("Find existing file"),
         "Find existing file": link("Already processed?"),
         "Already processed?": {"main": [
-            [{"node": "Failed before?", "type": "main", "index": 0}],
+            [{"node": "Can be retried?", "type": "main", "index": 0}],
             [{"node": "Create invoice row", "type": "main", "index": 0}],
         ]},
-        "Failed before?": {"main": [
+        "Can be retried?": {"main": [
             [{"node": "Tries left?", "type": "main", "index": 0}],
             [{"node": "Reply duplicate file", "type": "main", "index": 0}],
         ]},
@@ -556,8 +574,14 @@ def build_workflow(supabase_url: str, slack_channel: str) -> dict:
             [{"node": "Save extraction", "type": "main", "index": 0}],
             [{"node": "Log failure", "type": "main", "index": 0}],
         ]},
-        "Save extraction": link("Save line items"),
-        "Save line items": link("Log extracted"),
+        "Save extraction": {"main": [
+            [{"node": "Save line items", "type": "main", "index": 0}],
+            [{"node": "Log failure", "type": "main", "index": 0}],
+        ]},
+        "Save line items": {"main": [
+            [{"node": "Log extracted", "type": "main", "index": 0}],
+            [{"node": "Log failure", "type": "main", "index": 0}],
+        ]},
         "Log extracted": link("Validate invoice"),
         "Validate invoice": {"main": [
             [{"node": "Build Slack message", "type": "main", "index": 0}],

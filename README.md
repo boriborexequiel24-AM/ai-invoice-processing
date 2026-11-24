@@ -11,7 +11,7 @@ An invoice PDF goes in, a bill in the accounting system comes out. Email it or u
 ![Architecture: two n8n workflows, with a Slack approval in the middle, on top of Supabase](docs/images/architecture.svg)
 
 ## What it does
-1. **Receives invoices** emailed to a watched label or uploaded on the dashboard, and skips any file it has already seen. A file that failed can be sent again, up to three tries a day. Both routes go through one webhook, so they share every step that follows.
+1. **Receives invoices** emailed to a watched label or uploaded on the dashboard, and skips any file it has already seen. A file that failed or got stuck can be sent again, up to three tries a day. Both routes go through one webhook, so they share every step that follows.
 2. **Reads each invoice with AI** (OpenAI, with the provider swappable), pulling out the vendor, invoice number, dates, line items and totals, with a confidence score for each field.
 3. **Checks the numbers:** line items add up, no duplicate invoices, the purchase order exists and matches, the vendor is known.
 4. **Sends it for approval** in Slack with Approve and Reject buttons, and explains any problems in plain words.
