@@ -161,12 +161,12 @@
         300
       ],
       "parameters": {
-        "jsCode": "// Keep a readable line per attachment, and carry the message id through so\n// the label can be taken off the ones that made it.\nconst sent = $('Pick PDF attachments').all();\nreturn $input.all().map((item, i) => {\n  const status = item.json.statusCode;\n  const body = item.json.body ?? {};\n  return {\n    json: {\n      file_name: sent[i]?.json.file_name,\n      message_id: sent[i]?.json.message_id,\n      from: sent[i]?.json.from,\n      status,\n      outcome: status === 200 ? body.status : status === 409 ? 'already processed' : status === 429 ? 'given up' : 'failed',\n      invoice_id: body.invoice_id ?? null,\n    },\n  };\n});"
+        "jsCode": "// One line per attachment: how it went, and whether its whole message is settled.\n// The label can only come off a whole message, so one good PDF must not take it\n// off while another PDF in the same message still needs a retry.\nconst DONE = [200, 409], GIVE_UP = [400, 413, 415, 429], IN_PROGRESS = [\"received\", \"extracting\", \"extracted\"];\nconst sent = $('Pick PDF attachments').all();\n\nconst lines = $input.all().map((item, i) => {\n  const status = item.json.statusCode;\n  const body = item.json.body ?? {};\n  let outcome = 'retry';\n  if (status === 409 && IN_PROGRESS.includes(body.status)) outcome = 'in progress';\n  else if (DONE.includes(status)) outcome = 'done';\n  else if (GIVE_UP.includes(status)) outcome = 'given up';\n  return {\n    file_name: sent[i]?.json.file_name,\n    message_id: sent[i]?.json.message_id,\n    from: sent[i]?.json.from,\n    status,\n    outcome,\n    reason: body.message ?? body.error ?? null,\n    invoice_id: body.invoice_id ?? null,\n  };\n});\n\nconst open = new Set(lines.filter(l => ['retry', 'in progress'].includes(l.outcome)).map(l => l.message_id));\nreturn lines.map(l => ({ json: { ...l, message_settled: !open.has(l.message_id) } }));"
       }
     },
     {
-      "id": "02fd2b70-618e-5ff5-a988-543c4740f1b0",
-      "name": "Accepted?",
+      "id": "f59dfaa0-568d-568e-9cb6-0d8a946fc208",
+      "name": "Message settled?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
@@ -183,8 +183,8 @@
           },
           "conditions": [
             {
-              "id": "b85e2e24-6030-5f93-9c97-44fa11c04028",
-              "leftValue": "={{ [200, 409].includes($json.status) }}",
+              "id": "2cc561a3-0501-5ab8-99d5-6ec1b59eb666",
+              "leftValue": "={{ $json.message_settled }}",
               "rightValue": "",
               "operator": {
                 "type": "boolean",
@@ -199,13 +199,13 @@
       }
     },
     {
-      "id": "44635771-5286-5bd4-ab63-93b2afddefcf",
-      "name": "Out of tries?",
+      "id": "35a4a00b-04cb-527d-b895-34cf543f578c",
+      "name": "Given up?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
         2070,
-        480
+        120
       ],
       "parameters": {
         "conditions": {
@@ -217,8 +217,8 @@
           },
           "conditions": [
             {
-              "id": "6a7b805c-72f0-5009-bb76-5cef592fb742",
-              "leftValue": "={{ $json.status === 429 }}",
+              "id": "87cb4b37-1551-5398-99ad-7f7b38811bcc",
+              "leftValue": "={{ $json.outcome === 'given up' }}",
               "rightValue": "",
               "operator": {
                 "type": "boolean",
@@ -239,7 +239,7 @@
       "typeVersion": 4.2,
       "position": [
         2300,
-        480
+        120
       ],
       "parameters": {
         "method": "POST",
@@ -248,10 +248,44 @@
         "nodeCredentialType": "slackApi",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ channel: $('Config').first().json.alerts_channel, text: ':warning: Gave up for today on an emailed invoice: ' + $json.file_name + ' from ' + ($json.from || 'unknown sender') + '. Its label was taken off. To try again, put the label back on tomorrow.' }) }}",
+        "jsonBody": "={{ JSON.stringify({ channel: $('Config').first().json.alerts_channel, text: ':warning: Gave up on an emailed invoice: ' + $json.file_name + ' from ' + ($json.from || 'unknown sender') + '. ' + ($json.reason || 'Status ' + $json.status + '.') + ' The label was taken off; put it back on to try again.' }) }}",
         "options": {}
       },
       "onError": "continueRegularOutput"
+    },
+    {
+      "id": "f1793a16-1382-5816-b832-0db72f06843b",
+      "name": "Needs a retry?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2070,
+        480
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "d13a73b8-ccfd-5b29-b475-b9feade4946b",
+              "leftValue": "={{ $json.outcome === 'retry' }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
     },
     {
       "id": "0c4a509b-7fcc-539a-ab32-c0033476ea04",
@@ -283,7 +317,7 @@
       "typeVersion": 4.2,
       "position": [
         2300,
-        660
+        480
       ],
       "parameters": {
         "method": "POST",
@@ -380,52 +414,58 @@
       "main": [
         [
           {
-            "node": "Accepted?",
+            "node": "Message settled?",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Accepted?": {
+    "Message settled?": {
       "main": [
         [
           {
             "node": "Take label off",
             "type": "main",
             "index": 0
+          },
+          {
+            "node": "Given up?",
+            "type": "main",
+            "index": 0
           }
         ],
         [
           {
-            "node": "Out of tries?",
+            "node": "Needs a retry?",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Out of tries?": {
+    "Given up?": {
       "main": [
         [
           {
             "node": "Alert given up",
             "type": "main",
             "index": 0
-          },
-          {
-            "node": "Take label off",
-            "type": "main",
-            "index": 0
           }
         ],
+        []
+      ]
+    },
+    "Needs a retry?": {
+      "main": [
         [
           {
             "node": "Alert team",
             "type": "main",
             "index": 0
           }
-        ]
+        ],
+        []
       ]
     }
   },

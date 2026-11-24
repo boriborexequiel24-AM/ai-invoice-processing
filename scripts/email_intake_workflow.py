@@ -13,10 +13,12 @@ Why a schedule and not n8n's Gmail Trigger:
     search has no such window: a message counts as queued for as long as it
     carries the label.
 
-The label is also the dedupe. Once a PDF has been handed over, the label is
-removed, so the next run no longer sees it. If the hand-over fails the label
-stays on and the message is retried a minute later. Workflow 1 allows three
-tries a day per file and then answers 429: the label comes off and the team is told.
+The label is also the dedupe, and it belongs to the message, not to one PDF. It
+comes off once every PDF in the message is settled: processed now or before, or
+given up on. Until then it stays on and the next run sends them all again, which
+is harmless for the ones that worked (workflow 1 answers 409). Given up means it
+can never work (not a PDF, too large) or workflow 1 has tried it three times
+today (429). The team is told, and the label still comes off.
 
 Only labelled messages are read, so nothing else in the mailbox is touched.
 Built and deployed by scripts/build_n8n_workflow.py.
@@ -38,10 +40,11 @@ LABEL_NAME = "invoice-demo"
 GMAIL_QUERY = f"label:{LABEL_NAME} has:attachment"
 MAX_PER_RUN = 10
 
-# A repeat of the same file is not a problem: workflow 1 fingerprints every PDF
-# and answers 409 without processing it again.
-ACCEPTED_CODES = [200, 409]
-GIVE_UP_CODE = 429  # workflow 1 has tried this file too often today
+# How workflow 1 answers, per PDF. Anything else (502, a timeout) is retried.
+DONE_CODES = [200, 409]  # 409: a repeat of a file it already has
+GIVE_UP_CODES = [400, 413, 415, 429]  # no file, too large, not a PDF, tried too often today
+# A 409 for a file another run is still working on proves nothing yet.
+IN_PROGRESS = ["received", "extracting", "extracted"]
 
 GMAIL_API = "https://gmail.googleapis.com/gmail/v1/users/me"
 
@@ -102,23 +105,35 @@ for (const item of $input.all()) {
 return out;  // nothing labelled means no items, and the run stops here"""
 
 
-SUMMARY_CODE = """// Keep a readable line per attachment, and carry the message id through so
-// the label can be taken off the ones that made it.
+SUMMARY_CODE = """// One line per attachment: how it went, and whether its whole message is settled.
+// The label can only come off a whole message, so one good PDF must not take it
+// off while another PDF in the same message still needs a retry.
+const DONE = __DONE__, GIVE_UP = __GIVE_UP__, IN_PROGRESS = __IN_PROGRESS__;
 const sent = $('Pick PDF attachments').all();
-return $input.all().map((item, i) => {
+
+const lines = $input.all().map((item, i) => {
   const status = item.json.statusCode;
   const body = item.json.body ?? {};
+  let outcome = 'retry';
+  if (status === 409 && IN_PROGRESS.includes(body.status)) outcome = 'in progress';
+  else if (DONE.includes(status)) outcome = 'done';
+  else if (GIVE_UP.includes(status)) outcome = 'given up';
   return {
-    json: {
-      file_name: sent[i]?.json.file_name,
-      message_id: sent[i]?.json.message_id,
-      from: sent[i]?.json.from,
-      status,
-      outcome: status === 200 ? body.status : status === 409 ? 'already processed' : status === 429 ? 'given up' : 'failed',
-      invoice_id: body.invoice_id ?? null,
-    },
+    file_name: sent[i]?.json.file_name,
+    message_id: sent[i]?.json.message_id,
+    from: sent[i]?.json.from,
+    status,
+    outcome,
+    reason: body.message ?? body.error ?? null,
+    invoice_id: body.invoice_id ?? null,
   };
-});"""
+});
+
+const open = new Set(lines.filter(l => ['retry', 'in progress'].includes(l.outcome)).map(l => l.message_id));
+return lines.map(l => ({ json: { ...l, message_settled: !open.has(l.message_id) } }));""" \
+    .replace("__DONE__", json.dumps(DONE_CODES)) \
+    .replace("__GIVE_UP__", json.dumps(GIVE_UP_CODES)) \
+    .replace("__IN_PROGRESS__", json.dumps(IN_PROGRESS))
 
 
 def gmail_request(name: str, position, method: str, url: str, body: str | None = None, **extra) -> dict:
@@ -136,7 +151,7 @@ def gmail_request(name: str, position, method: str, url: str, body: str | None =
 
 
 def build_email_intake_workflow(env: dict) -> dict:
-    y, row2, row3 = 300, 480, 660
+    y, row2 = 300, 480
     x = lambda col: col * 230  # noqa: E731
 
     nodes = [
@@ -179,25 +194,27 @@ def build_email_intake_workflow(env: dict) -> dict:
         # leaving the Gmail label on so the next run picks the message up again.
         }, alwaysOutputData=True),
         node("Summarize", "n8n-nodes-base.code", 2, (x(7), y), {"jsCode": SUMMARY_CODE}),
-        if_node("Accepted?", (x(8), y),
-                "={{ " + json.dumps(ACCEPTED_CODES) + ".includes($json.status) }}",
+        if_node("Message settled?", (x(8), y), "={{ $json.message_settled }}",
                 {"type": "boolean", "operation": "true", "singleValue": True}),
-        # Out of tries: tell the team once and take the label off, or it would repeat every minute.
-        if_node("Out of tries?", (x(9), row2), f"={{{{ $json.status === {GIVE_UP_CODE} }}}}",
+        # Only told once the message is settled, so it isn't repeated while another PDF is retried.
+        if_node("Given up?", (x(9), y - 180), "={{ $json.outcome === 'given up' }}",
                 {"type": "boolean", "operation": "true", "singleValue": True}),
-        slack_request("Alert given up", (x(10), row2), "chat.postMessage",
+        slack_request("Alert given up", (x(10), y - 180), "chat.postMessage",
                       "={{ JSON.stringify({ channel: $('Config').first().json.alerts_channel, "
-                      "text: ':warning: Gave up for today on an emailed invoice: ' + $json.file_name "
-                      "+ ' from ' + ($json.from || 'unknown sender') "
-                      "+ '. Its label was taken off. To try again, put the label back on tomorrow.' }) }}",
+                      "text: ':warning: Gave up on an emailed invoice: ' + $json.file_name "
+                      "+ ' from ' + ($json.from || 'unknown sender') + '. ' + ($json.reason || 'Status ' + $json.status + '.') "
+                      "+ ' The label was taken off; put it back on to try again.' }) }}",
                       onError="continueRegularOutput"),
+        if_node("Needs a retry?", (x(9), row2), "={{ $json.outcome === 'retry' }}",
+                {"type": "boolean", "operation": "true", "singleValue": True}),
         # Taking the label off is what stops the message being picked up again.
-        # Leaving it on after a failure is deliberate: the next run retries it.
+        # Leaving it on after a failure is deliberate: the next run retries it. With several
+        # PDFs in a message this runs once for each, which Gmail doesn't mind.
         gmail_request("Take label off", (x(9), y), "POST",
                       f"={GMAIL_API}/messages/{{{{ $json.message_id }}}}/modify",
                       body="={{ JSON.stringify({ removeLabelIds: [$('Find label').first().json.label_id] }) }}",
                       onError="continueRegularOutput"),
-        slack_request("Alert team", (x(10), row3), "chat.postMessage",
+        slack_request("Alert team", (x(10), row2), "chat.postMessage",
                       "={{ JSON.stringify({ channel: $('Config').first().json.alerts_channel, "
                       "text: ':warning: An emailed invoice could not be processed: ' + $json.file_name "
                       "+ ' from ' + ($json.from || 'unknown sender') + ' (status ' + $json.status + ')'"
@@ -216,15 +233,13 @@ def build_email_intake_workflow(env: dict) -> dict:
         "Get labelled mail": link("Pick PDF attachments"),
         "Pick PDF attachments": link("Send to intake"),
         "Send to intake": link("Summarize"),
-        "Summarize": link("Accepted?"),
-        "Accepted?": {"main": [
-            [{"node": "Take label off", "type": "main", "index": 0}],
-            [{"node": "Out of tries?", "type": "main", "index": 0}],
+        "Summarize": link("Message settled?"),
+        "Message settled?": {"main": [
+            [{"node": "Take label off", "type": "main", "index": 0}, {"node": "Given up?", "type": "main", "index": 0}],
+            [{"node": "Needs a retry?", "type": "main", "index": 0}],
         ]},
-        "Out of tries?": {"main": [
-            [{"node": "Alert given up", "type": "main", "index": 0}, {"node": "Take label off", "type": "main", "index": 0}],
-            [{"node": "Alert team", "type": "main", "index": 0}],
-        ]},
+        "Given up?": {"main": [[{"node": "Alert given up", "type": "main", "index": 0}], []]},
+        "Needs a retry?": {"main": [[{"node": "Alert team", "type": "main", "index": 0}], []]},
     }
 
     return {
