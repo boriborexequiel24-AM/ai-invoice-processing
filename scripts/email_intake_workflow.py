@@ -15,7 +15,8 @@ Why a schedule and not n8n's Gmail Trigger:
 
 The label is also the dedupe. Once a PDF has been handed over, the label is
 removed, so the next run no longer sees it. If the hand-over fails the label
-stays on and the message is retried a minute later.
+stays on and the message is retried a minute later. Workflow 1 allows three
+tries a day per file and then answers 429: the label comes off and the team is told.
 
 Only labelled messages are read, so nothing else in the mailbox is touched.
 Built and deployed by scripts/build_n8n_workflow.py.
@@ -40,6 +41,7 @@ MAX_PER_RUN = 10
 # A repeat of the same file is not a problem: workflow 1 fingerprints every PDF
 # and answers 409 without processing it again.
 ACCEPTED_CODES = [200, 409]
+GIVE_UP_CODE = 429  # workflow 1 has tried this file too often today
 
 GMAIL_API = "https://gmail.googleapis.com/gmail/v1/users/me"
 
@@ -112,7 +114,7 @@ return $input.all().map((item, i) => {
       message_id: sent[i]?.json.message_id,
       from: sent[i]?.json.from,
       status,
-      outcome: status === 200 ? body.status : status === 409 ? 'already processed' : 'failed',
+      outcome: status === 200 ? body.status : status === 409 ? 'already processed' : status === 429 ? 'given up' : 'failed',
       invoice_id: body.invoice_id ?? null,
     },
   };
@@ -134,7 +136,7 @@ def gmail_request(name: str, position, method: str, url: str, body: str | None =
 
 
 def build_email_intake_workflow(env: dict) -> dict:
-    y, row2 = 300, 480
+    y, row2, row3 = 300, 480, 660
     x = lambda col: col * 230  # noqa: E731
 
     nodes = [
@@ -180,13 +182,22 @@ def build_email_intake_workflow(env: dict) -> dict:
         if_node("Accepted?", (x(8), y),
                 "={{ " + json.dumps(ACCEPTED_CODES) + ".includes($json.status) }}",
                 {"type": "boolean", "operation": "true", "singleValue": True}),
+        # Out of tries: tell the team once and take the label off, or it would repeat every minute.
+        if_node("Out of tries?", (x(9), row2), f"={{{{ $json.status === {GIVE_UP_CODE} }}}}",
+                {"type": "boolean", "operation": "true", "singleValue": True}),
+        slack_request("Alert given up", (x(10), row2), "chat.postMessage",
+                      "={{ JSON.stringify({ channel: $('Config').first().json.alerts_channel, "
+                      "text: ':warning: Gave up for today on an emailed invoice: ' + $json.file_name "
+                      "+ ' from ' + ($json.from || 'unknown sender') "
+                      "+ '. Its label was taken off. To try again, put the label back on tomorrow.' }) }}",
+                      onError="continueRegularOutput"),
         # Taking the label off is what stops the message being picked up again.
         # Leaving it on after a failure is deliberate: the next run retries it.
         gmail_request("Take label off", (x(9), y), "POST",
                       f"={GMAIL_API}/messages/{{{{ $json.message_id }}}}/modify",
                       body="={{ JSON.stringify({ removeLabelIds: [$('Find label').first().json.label_id] }) }}",
                       onError="continueRegularOutput"),
-        slack_request("Alert team", (x(9), row2), "chat.postMessage",
+        slack_request("Alert team", (x(10), row3), "chat.postMessage",
                       "={{ JSON.stringify({ channel: $('Config').first().json.alerts_channel, "
                       "text: ':warning: An emailed invoice could not be processed: ' + $json.file_name "
                       "+ ' from ' + ($json.from || 'unknown sender') + ' (status ' + $json.status + ')'"
@@ -208,6 +219,10 @@ def build_email_intake_workflow(env: dict) -> dict:
         "Summarize": link("Accepted?"),
         "Accepted?": {"main": [
             [{"node": "Take label off", "type": "main", "index": 0}],
+            [{"node": "Out of tries?", "type": "main", "index": 0}],
+        ]},
+        "Out of tries?": {"main": [
+            [{"node": "Alert given up", "type": "main", "index": 0}, {"node": "Take label off", "type": "main", "index": 0}],
             [{"node": "Alert team", "type": "main", "index": 0}],
         ]},
     }

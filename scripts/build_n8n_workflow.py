@@ -41,6 +41,9 @@ WEBHOOK_PATH = "invoice-intake"
 BUCKET = "invoices"
 MAX_UPLOAD_MB = 5
 UPLOAD_RETENTION_HOURS = 24
+# How many times a day one file may be tried if processing keeps failing. Every
+# try is a paid AI call, and email intake retries once a minute.
+MAX_TRIES_PER_DAY = 3
 
 # Chosen in docs/extraction-eval.md. Prices are USD per 1M tokens (input, cached input, output).
 MODEL = "gpt-5.4-mini"
@@ -130,6 +133,7 @@ return [{{
     price_per_million: {{ input: {MODEL_PRICES[0]}, cached: {MODEL_PRICES[1]}, output: {MODEL_PRICES[2]} }},
     max_upload_mb: {MAX_UPLOAD_MB},
     upload_retention_hours: {UPLOAD_RETENTION_HOURS},
+    max_tries_per_day: {MAX_TRIES_PER_DAY},
   }},
   binary: $input.first().binary,
 }}];"""
@@ -201,7 +205,7 @@ return [{{ json: {{ body, started_at: Date.now() }} }}];"""
 PARSE_CODE = """// Turn the AI response into database rows. Values are saved exactly as the AI read them;
 // checking the math, duplicates and POs happens in the validation step.
 const config = $('Config').first().json;
-const invoiceId = $('Create invoice row').first().json.id;
+const invoiceId = $('Invoice row').first().json.id;
 const startedAt = $('Build AI request').first().json.started_at;
 const response = $input.first().json;
 
@@ -310,7 +314,7 @@ def slack_request(name: str, position, method_path: str, body: str, **extra) -> 
 # ---------- Workflow ----------
 
 def build_workflow(supabase_url: str, slack_channel: str) -> dict:
-    y, row2 = 300, 520
+    y, row2, row3, row4 = 300, 520, 740, 940
     x = lambda col: 0 + col * 240  # noqa: E731
 
     nodes = [
@@ -356,14 +360,59 @@ def build_workflow(supabase_url: str, slack_channel: str) -> dict:
         }),
         supabase_request(
             "Find existing file", (x(6), y), "GET",
-            "/rest/v1/invoices?select=id,status&file_hash=eq.{{ $('Hash file').first().json.file_hash }}",
+            "/rest/v1/invoices?select=id,status,invoice_events(step,created_at)&file_hash=eq.{{ $('Hash file').first().json.file_hash }}",
             alwaysOutputData=True,
         ),
         if_node("Already processed?", (x(7), y), "={{ $json.id }}",
                 {"type": "string", "operation": "exists", "singleValue": True}),
         respond("Reply duplicate file", (x(8), row2), 409,
                 "={{ { error: 'duplicate_file', message: 'This exact file was already processed.', "
-                "invoice_id: $json.id, status: $json.status } }}"),
+                "invoice_id: $('Find existing file').first().json.id, "
+                "status: $('Find existing file').first().json.status } }}"),
+        # A file whose processing failed may be sent again, up to the daily limit. Its
+        # row is reused, because file_hash is unique and the history stays in one place.
+        if_node("Failed before?", (x(8), row3), "={{ $json.status === 'failed' }}",
+                {"type": "boolean", "operation": "true", "singleValue": True}),
+        if_node("Tries left?", (x(9), row3),
+                "={{ ($json.invoice_events || []).filter(e => e.step === 'received' "
+                "&& Date.now() - new Date(e.created_at).getTime() < 24 * 3600 * 1000).length "
+                "< $('Config').first().json.max_tries_per_day }}",
+                {"type": "boolean", "operation": "true", "singleValue": True}),
+        respond("Reply too many tries", (x(10), row4), 429,
+                "={{ { error: 'too_many_tries', message: 'This file could not be processed after several tries. "
+                "Please try again tomorrow.', invoice_id: $json.id } }}"),
+        # The status filter means only one of two simultaneous retries gets through.
+        supabase_request(
+            "Reopen failed invoice", (x(10), row3), "PATCH",
+            "/rest/v1/invoices?id=eq.{{ $json.id }}&status=eq.failed",
+            body="={{ JSON.stringify({\n"
+                 "  status: 'extracting',\n"
+                 "  source: $('Validate upload').first().json.source,\n"
+                 "  file_path: $('Hash file').first().json.file_hash + '.pdf',\n"
+                 "  file_name: $('Validate upload').first().json.file_name,\n"
+                 "  uploader_ip_hash: $('Validate upload').first().json.ip_hash,\n"
+                 "  expires_at: $('Validate upload').first().json.source === 'upload'\n"
+                 "    ? new Date(Date.now() + $('Config').first().json.upload_retention_hours * 3600 * 1000).toISOString()\n"
+                 "    : null,\n"
+                 "  created_at: new Date().toISOString(),\n"
+                 "  flags: []\n"
+                 "}) }}",
+            prefer="return=representation", alwaysOutputData=True,
+        ),
+        if_node("Reopened?", (x(11), row3), "={{ $json.id }}",
+                {"type": "string", "operation": "exists", "singleValue": True}),
+        # The first try may have saved line items before it failed.
+        supabase_request(
+            "Clear old line items", (x(12), row3), "DELETE",
+            "/rest/v1/invoice_line_items?invoice_id=eq.{{ $json.id }}",
+            prefer="return=minimal", executeOnce=True, alwaysOutputData=True,
+        ),
+        # New and reopened invoices join here, so later steps have one place to get the id.
+        node("Invoice row", "n8n-nodes-base.code", 2, (x(9), y - 160), {
+            "jsCode": "// The invoice being processed: the row just created, or the failed one being retried.\n"
+                      "const retry = $('Reopen failed invoice').isExecuted;\n"
+                      "return [{ json: { id: retry ? $('Reopen failed invoice').first().json.id : $input.first().json.id } }];",
+        }),
         supabase_request(
             "Create invoice row", (x(8), y), "POST", "/rest/v1/invoices",
             body="={{ JSON.stringify({\n"
@@ -381,7 +430,7 @@ def build_workflow(supabase_url: str, slack_channel: str) -> dict:
         ),
         supabase_request(
             "Log received", (x(9), y), "POST", "/rest/v1/invoice_events",
-            body="={{ JSON.stringify({ invoice_id: $('Create invoice row').first().json.id, step: 'received', "
+            body="={{ JSON.stringify({ invoice_id: $('Invoice row').first().json.id, step: 'received', "
                  "actor: 'system', details: { source: $('Validate upload').first().json.source, "
                  "file_name: $('Validate upload').first().json.file_name, "
                  "size_bytes: $('Validate upload').first().json.size_bytes } }) }}",
@@ -447,19 +496,19 @@ def build_workflow(supabase_url: str, slack_channel: str) -> dict:
         # Error branch: log the error from the failed item first, then mark the invoice failed.
         supabase_request(
             "Log failure", (x(13), row2), "POST", "/rest/v1/invoice_events",
-            body="={{ JSON.stringify({ invoice_id: $('Create invoice row').first().json.id, step: 'error', "
+            body="={{ JSON.stringify({ invoice_id: $('Invoice row').first().json.id, step: 'error', "
                  "actor: 'system', details: { stage: $('Validate invoice').isExecuted ? 'validation' : 'extraction', "
                  "error: String($json.error?.message ?? $json.error ?? 'unknown error').slice(0, 500) } }) }}",
             prefer="return=minimal", executeOnce=True, alwaysOutputData=True,
         ),
         supabase_request(
             "Mark failed", (x(14), row2), "PATCH",
-            "/rest/v1/invoices?id=eq.{{ $('Create invoice row').first().json.id }}",
+            "/rest/v1/invoices?id=eq.{{ $('Invoice row').first().json.id }}",
             body="={{ JSON.stringify({ status: 'failed' }) }}",
             prefer="return=minimal", executeOnce=True, alwaysOutputData=True,
         ),
         respond("Reply failed", (x(15), row2), 502,
-                "={{ { error: 'processing_failed', invoice_id: $('Create invoice row').first().json.id } }}"),
+                "={{ { error: 'processing_failed', invoice_id: $('Invoice row').first().json.id } }}"),
     ]
 
     def link(*names: str) -> dict:
@@ -478,10 +527,25 @@ def build_workflow(supabase_url: str, slack_channel: str) -> dict:
         "Store PDF": link("Find existing file"),
         "Find existing file": link("Already processed?"),
         "Already processed?": {"main": [
-            [{"node": "Reply duplicate file", "type": "main", "index": 0}],
+            [{"node": "Failed before?", "type": "main", "index": 0}],
             [{"node": "Create invoice row", "type": "main", "index": 0}],
         ]},
-        "Create invoice row": link("Log received"),
+        "Failed before?": {"main": [
+            [{"node": "Tries left?", "type": "main", "index": 0}],
+            [{"node": "Reply duplicate file", "type": "main", "index": 0}],
+        ]},
+        "Tries left?": {"main": [
+            [{"node": "Reopen failed invoice", "type": "main", "index": 0}],
+            [{"node": "Reply too many tries", "type": "main", "index": 0}],
+        ]},
+        "Reopen failed invoice": link("Reopened?"),
+        "Reopened?": {"main": [
+            [{"node": "Clear old line items", "type": "main", "index": 0}],
+            [{"node": "Reply duplicate file", "type": "main", "index": 0}],
+        ]},
+        "Clear old line items": link("Invoice row"),
+        "Create invoice row": link("Invoice row"),
+        "Invoice row": link("Log received"),
         "Log received": link("Build AI request"),
         "Build AI request": link("Extract with AI"),
         "Extract with AI": {"main": [

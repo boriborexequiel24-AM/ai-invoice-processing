@@ -85,7 +85,7 @@ A mailbox holding nothing private is safest. If you use an everyday account, the
 - [ ] Test: email a PDF to that account, apply the `invoice-demo` label, and wait up to a minute. It should appear on the dashboard and in `#invoice-approvals`, and the label should come off the message.
 
 ### How it decides what to process
-The label is the queue. Every minute the workflow searches for labelled messages with an attachment, posts each PDF, and then takes the label off. That is also the dedupe: once the label is gone the message is not seen again. If the hand-over fails the label stays on, so the next run retries it and an alert goes to `#invoice-alerts`.
+The label is the queue. Every minute the workflow searches for labelled messages with an attachment, posts each PDF, and then takes the label off. That is also the dedupe: once the label is gone the message is not seen again. If the hand-over fails the label stays on, so the next run retries it and an alert goes to `#invoice-alerts`. A file that keeps failing is tried three times in 24 hours; then the label comes off and the alerts channel is told, so put the label back on the next day to try again.
 
 It does not use n8n's Gmail Trigger, and it should not be changed back. That trigger only returns messages that **arrived** since its last poll, but a label is always applied after a message arrives. The poll moves its clock past the message while it is still unlabelled, and the message can then never be picked up. It appears to work whenever you happen to label fast enough, which makes it look intermittent rather than broken.
 

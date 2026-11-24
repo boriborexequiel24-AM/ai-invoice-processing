@@ -161,7 +161,7 @@
         300
       ],
       "parameters": {
-        "jsCode": "// Keep a readable line per attachment, and carry the message id through so\n// the label can be taken off the ones that made it.\nconst sent = $('Pick PDF attachments').all();\nreturn $input.all().map((item, i) => {\n  const status = item.json.statusCode;\n  const body = item.json.body ?? {};\n  return {\n    json: {\n      file_name: sent[i]?.json.file_name,\n      message_id: sent[i]?.json.message_id,\n      from: sent[i]?.json.from,\n      status,\n      outcome: status === 200 ? body.status : status === 409 ? 'already processed' : 'failed',\n      invoice_id: body.invoice_id ?? null,\n    },\n  };\n});"
+        "jsCode": "// Keep a readable line per attachment, and carry the message id through so\n// the label can be taken off the ones that made it.\nconst sent = $('Pick PDF attachments').all();\nreturn $input.all().map((item, i) => {\n  const status = item.json.statusCode;\n  const body = item.json.body ?? {};\n  return {\n    json: {\n      file_name: sent[i]?.json.file_name,\n      message_id: sent[i]?.json.message_id,\n      from: sent[i]?.json.from,\n      status,\n      outcome: status === 200 ? body.status : status === 409 ? 'already processed' : status === 429 ? 'given up' : 'failed',\n      invoice_id: body.invoice_id ?? null,\n    },\n  };\n});"
       }
     },
     {
@@ -199,6 +199,61 @@
       }
     },
     {
+      "id": "44635771-5286-5bd4-ab63-93b2afddefcf",
+      "name": "Out of tries?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2070,
+        480
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "6a7b805c-72f0-5009-bb76-5cef592fb742",
+              "leftValue": "={{ $json.status === 429 }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "530d1129-70ca-5c66-96c5-5eb022decdd4",
+      "name": "Alert given up",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2300,
+        480
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://slack.com/api/chat.postMessage",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "slackApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ channel: $('Config').first().json.alerts_channel, text: ':warning: Gave up for today on an emailed invoice: ' + $json.file_name + ' from ' + ($json.from || 'unknown sender') + '. Its label was taken off. To try again, put the label back on tomorrow.' }) }}",
+        "options": {}
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
       "id": "0c4a509b-7fcc-539a-ab32-c0033476ea04",
       "name": "Take label off",
       "type": "n8n-nodes-base.httpRequest",
@@ -227,8 +282,8 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        2070,
-        480
+        2300,
+        660
       ],
       "parameters": {
         "method": "POST",
@@ -335,6 +390,29 @@
     "Accepted?": {
       "main": [
         [
+          {
+            "node": "Take label off",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Out of tries?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Out of tries?": {
+      "main": [
+        [
+          {
+            "node": "Alert given up",
+            "type": "main",
+            "index": 0
+          },
           {
             "node": "Take label off",
             "type": "main",
